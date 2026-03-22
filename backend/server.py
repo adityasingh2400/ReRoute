@@ -187,16 +187,15 @@ async def lifespan(_app: FastAPI):
         import time as _t
         t0 = _t.time()
 
-        # Try loading snapshot from disk first (instant, no API calls)
         if load_demo_snapshot():
             elapsed = _t.time() - t0
-            print(f"[WARMUP] Snapshot loaded in {elapsed:.2f}s — zero API calls needed")
+            print(f"[READY] Loaded in {elapsed:.2f}s")
         else:
-            print(f"[WARMUP] No snapshot found — running full pre-computation...")
+            print(f"[WARMUP] Preparing pipeline...")
             try:
                 await svc.precompute_demo_pipeline()
             except Exception as exc:
-                print(f"\n  [Warmup] ⚠ Pre-computation failed: {exc}")
+                print(f"\n  [Warmup] ⚠ Warmup failed: {exc}")
                 import traceback
                 traceback.print_exc()
 
@@ -210,7 +209,7 @@ async def lifespan(_app: FastAPI):
     ║     ██║  ██║███████╗██║  ██║██████╔╝   ██║                   ║
     ║     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝    ╚═╝                   ║
     ║                                                               ║
-    ║     All stages pre-computed. Start the demo!                  ║
+    ║     Ready to demo!                                            ║
     ║                                                               ║
     ╚═══════════════════════════════════════════════════════════════╝
 """, flush=True)
