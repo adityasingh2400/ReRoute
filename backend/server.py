@@ -996,6 +996,9 @@ async def run_pipeline(job_id: str) -> None:
             if isinstance(result, Exception):
                 logger.error("Agent task %d failed: %s", idx_r, result, exc_info=result)
 
+        # Let viewers absorb the comparative listings before route bidding decisions
+        await asyncio.sleep(5.0)
+
         # Stage 4: Decisions + listing generation for ALL items in parallel
         from backend.systems.listing_asset_optimization import ListingAssetOptimizationSystem
         from backend.models.listing_package import ListingPackage, ListingImage
