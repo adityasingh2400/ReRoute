@@ -3017,9 +3017,9 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 40px;
-  padding: 20px 0 40px;
-  min-height: 300px;
+  gap: 56px 64px;
+  padding: 32px 24px 48px;
+  min-height: 400px;
 }
 .planets-empty {
   color: var(--text-tertiary);
@@ -3035,9 +3035,27 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 280px;
-  min-height: 280px;
-  padding-top: 60px;
+  width: 320px;
+  min-height: 340px;
+  padding-top: 72px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(222, 212, 200, 0.6);
+  border-radius: 24px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  padding-bottom: 20px;
+}
+.planet-system:hover {
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.07);
+  border-color: rgba(200, 190, 178, 0.7);
+}
+.planet-system.planet-active {
+  border-color: rgba(196, 30, 58, 0.25);
+  box-shadow: 0 4px 40px rgba(196, 30, 58, 0.08);
+}
+.planet-system.planet-done {
+  border-color: rgba(74, 122, 46, 0.35);
+  box-shadow: 0 4px 32px rgba(74, 122, 46, 0.08);
 }
 
 /* SVG connection lines */
@@ -3046,7 +3064,7 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 280px;
+  height: 340px;
   pointer-events: none;
   z-index: 0;
 }
@@ -3072,17 +3090,17 @@ body {
 
 /* ── Planet Core (the item itself) ─────────────────────────── */
 .planet-core {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2.5px solid #222;
+  border: 3px solid #222;
   background: #fff;
   position: relative;
   z-index: 2;
   flex-shrink: 0;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.14);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
 }
 .planet-core-active {
   border-color: var(--primary);
@@ -3119,20 +3137,21 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 12px;
   z-index: 2;
   position: relative;
 }
 .planet-name {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-primary);
   text-align: center;
-  max-width: 180px;
+  max-width: 240px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 .planet-tags {
   display: flex;
@@ -3145,7 +3164,7 @@ body {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--success);
@@ -3153,8 +3172,8 @@ body {
 .planet-scanning {
   display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 10px;
+  gap: 4px;
+  font-size: 11px;
   color: var(--primary);
   font-weight: 500;
 }
@@ -3162,9 +3181,9 @@ body {
 /* ── Progress Ring ─────────────────────────────────────────── */
 .planet-progress-ring {
   position: relative;
-  width: 36px;
-  height: 36px;
-  margin-top: 4px;
+  width: 40px;
+  height: 40px;
+  margin-top: 6px;
 }
 .planet-ring-svg {
   width: 100%;
@@ -3188,40 +3207,40 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   cursor: pointer;
   z-index: 3;
   transition: transform 0.2s ease;
 }
 .sat-agent:hover {
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 .sat-pos-top-left {
-  top: 10px;
-  left: 10px;
+  top: 14px;
+  left: 14px;
 }
 .sat-pos-top-right {
-  top: 10px;
-  right: 10px;
+  top: 14px;
+  right: 14px;
 }
 .sat-pos-bottom-right {
-  bottom: 120px;
-  right: 10px;
+  bottom: 140px;
+  right: 14px;
 }
 .sat-pos-bottom-left {
-  bottom: 120px;
-  left: 10px;
+  bottom: 140px;
+  left: 14px;
 }
 
 .sat-icon-orb {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-card);
-  border: 1.5px solid var(--glass-border);
+  border: 2px solid var(--glass-border);
   color: var(--agent-accent, var(--text-tertiary));
   position: relative;
   transition: all 0.4s ease;
@@ -3262,7 +3281,7 @@ body {
 }
 
 .sat-name {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -3275,13 +3294,13 @@ body {
   display: flex;
   align-items: center;
   gap: 1px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--success);
 }
 .sat-na {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text-tertiary);
   font-style: italic;
 }
@@ -4404,10 +4423,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 14px 24px;
-  background: var(--glass-bg);
-  border-bottom: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
+  padding: 10px 24px;
+  background: transparent;
+  border-bottom: none;
   flex-shrink: 0;
   overflow-x: auto;
 }
