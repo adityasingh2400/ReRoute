@@ -351,19 +351,22 @@ async def run_pipeline(job_id: str) -> None:
         print(f"[PIPELINE] Stage 1: Extracting frames and transcript...")
         t0 = _time.time()
         await store.update_job_status(job_id, JobStatus.EXTRACTING)
-        await emit_agent_event(job_id, "agent_started", {"agent": "intake", "message": "Extracting video frames and transcript..."})
+        await emit_agent_event(job_id, "agent_started", {"agent": "intake", "message": "Uploading video to Gemini for processing..."})
 
         from backend.systems.transcript_extraction import (
             TranscriptAndFrameExtractionSystem,
         )
 
+        await emit_agent_event(job_id, "agent_progress", {"agent": "intake", "message": "Uploading video file...", "progress": 0.2})
         extractor = TranscriptAndFrameExtractionSystem()
         transcript, frame_paths = await extractor.process(job_id, job.video_path)
         elapsed_1 = round((_time.time() - t0) * 1000)
         await emit_agent_event(job_id, "agent_completed", {
             "agent": "intake",
-            "message": f"Extracted {len(frame_paths)} frames, {len(transcript)} chars",
+            "message": f"Extracted {len(frame_paths)} frames, {len(transcript)} chars transcript",
             "elapsed_ms": elapsed_1,
+            "frame_count": len(frame_paths),
+            "transcript_length": len(transcript),
         })
         print(f"[PIPELINE] ✓ Extraction done in {_time.time()-t0:.1f}s — {len(frame_paths)} frames, {len(transcript)} chars transcript")
 
@@ -377,11 +380,12 @@ async def run_pipeline(job_id: str) -> None:
         # ── Stage 2: Gemini video analysis ──
         print(f"[PIPELINE] Stage 2: Sending to Gemini 3.1 Pro for item analysis...")
         t1 = _time.time()
-        await emit_agent_event(job_id, "agent_started", {"agent": "condition_fusion", "message": "Analyzing video with Gemini..."})
+        await emit_agent_event(job_id, "agent_started", {"agent": "condition_fusion", "message": "Sending video to Gemini AI for analysis..."})
 
         from backend.services.gemini import GeminiService
 
         gemini = GeminiService()
+        await emit_agent_event(job_id, "agent_progress", {"agent": "condition_fusion", "message": "Gemini analyzing video — identifying items, condition, defects...", "progress": 0.3})
         items: list[ItemCard] = await gemini.analyze_video(
             video_path=job.video_path,
             transcript=job.transcript_text or "",
@@ -389,19 +393,25 @@ async def run_pipeline(job_id: str) -> None:
         )
         await emit_agent_event(job_id, "agent_progress", {
             "agent": "condition_fusion",
-            "message": f"Found {len(items)} items",
+            "message": f"Found {len(items)} items — grading each one...",
             "progress": 0.7,
         })
 
-        for item in items:
+        for idx, item in enumerate(items):
             item.job_id = job_id
             await store.add_item(item)
+            await emit_agent_event(job_id, "agent_progress", {
+                "agent": "condition_fusion",
+                "message": f"Graded: {item.name_guess} — {item.condition_label} ({item.confidence:.0%})",
+                "progress": 0.7 + (0.3 * (idx + 1) / len(items)),
+            })
             print(f"[PIPELINE]   • {item.name_guess} (confidence: {item.confidence:.0%}, defects: {len(item.all_defects)})")
 
         await emit_agent_event(job_id, "agent_completed", {
             "agent": "condition_fusion",
             "message": f"Graded {len(items)} items",
             "elapsed_ms": round((_time.time() - t1) * 1000),
+            "item_count": len(items),
         })
         print(f"[PIPELINE] ✓ Gemini analysis done in {_time.time()-t1:.1f}s — {len(items)} items detected")
 
