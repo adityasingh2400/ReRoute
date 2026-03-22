@@ -41,6 +41,7 @@ class JobStore:
         self._decisions: dict[str, BestRouteDecision] = {}
         self._listings: dict[str, ListingPackage] = {}
         self._threads: dict[str, ConversationThread] = {}
+        self._agent_states: dict[str, dict[str, dict]] = {}  # job_id -> {agent_name -> state}
         self._event_callbacks: list[EventCallback] = []
         self._persist_dir = Path(settings.jobs_dir)
         self._persist_dir.mkdir(parents=True, exist_ok=True)
@@ -137,6 +138,35 @@ class JobStore:
     def get_threads_for_item(self, item_id: str) -> list[ConversationThread]:
         return [t for t in self._threads.values() if t.item_id == item_id]
 
+    # ── Agent States (for Mission Control) ─────────────────────────────────
+    #
+    # Stores per-item agent states to handle multi-item concurrency correctly.
+    # Structure: _agent_states[job_id][agent_name][item_id] = state
+    # get_agent_states() aggregates across items: if ANY item has an agent
+    # "thinking", it shows thinking. Only shows "done" when ALL items are done.
+
+    _STATUS_PRIORITY = {"agent_started": 3, "agent_progress": 2, "agent_completed": 1, "agent_error": 1}
+
+    def set_agent_state(self, job_id: str, agent: str, state: dict) -> None:
+        item_id = state.get("item_id", "_global")
+        self._agent_states.setdefault(job_id, {}).setdefault(agent, {})[item_id] = state
+
+    def get_agent_states(self, job_id: str) -> dict[str, dict]:
+        """Return aggregated agent states — most active state across all items per agent."""
+        per_agent = self._agent_states.get(job_id, {})
+        aggregated = {}
+        for agent_name, item_states in per_agent.items():
+            best = None
+            best_priority = -1
+            for state in item_states.values():
+                p = self._STATUS_PRIORITY.get(state.get("status", ""), 0)
+                if p > best_priority:
+                    best = state
+                    best_priority = p
+            if best:
+                aggregated[agent_name] = best
+        return aggregated
+
     # ── Full State (for dashboard) ────────────────────────────────────────
 
     def get_full_state(self, job_id: str) -> dict:
@@ -168,6 +198,7 @@ class JobStore:
                 iid: [t.model_dump(mode="json") for t in self.get_threads_for_item(iid)]
                 for iid in job.item_ids
             },
+            "agent_states": self.get_agent_states(job_id),
         }
 
     # ── Persistence ───────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from backend.adapters.base import PlatformAdapter
@@ -10,6 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionSystem:
+    """Publishes listings to multiple platforms concurrently.
+
+    Execution flow (concurrent):
+      asyncio.gather(*[_execute_single(p) for p in platforms])
+          ↓
+      Collect PlatformListing results (or exceptions)
+          ↓
+      Append all results to package.platform_listings sequentially
+          ↓
+      Single store.set_listing() call at the end
+    """
+
     def __init__(self, adapters: dict[str, PlatformAdapter] | None = None) -> None:
         self._adapters: dict[str, PlatformAdapter] = adapters or {}
 
@@ -21,35 +34,40 @@ class ExecutionSystem:
         package: ListingPackage,
         platforms: list[str],
     ) -> ListingPackage:
-        for platform in platforms:
-            try:
-                if platform == "ebay":
-                    pl = await self._execute_ebay(package)
-                elif platform == "mercari":
-                    pl = await self._execute_mercari(package)
-                else:
-                    adapter = self._adapters.get(platform)
-                    if adapter is None:
-                        logger.warning("No adapter registered for platform=%s", platform)
-                        pl = PlatformListing(
-                            platform=platform,
-                            status=PlatformStatus.SKIPPED,
-                            error=f"No adapter for {platform}",
-                        )
-                    else:
-                        pl = await adapter.create_draft(package)
-                        pl = await adapter.publish(pl)
+        async def _execute_single(platform: str) -> PlatformListing:
+            if platform == "ebay":
+                return await self._execute_ebay(package)
+            elif platform == "mercari":
+                return await self._execute_mercari(package)
+            else:
+                adapter = self._adapters.get(platform)
+                if adapter is None:
+                    logger.warning("No adapter registered for platform=%s", platform)
+                    return PlatformListing(
+                        platform=platform,
+                        status=PlatformStatus.SKIPPED,
+                        error=f"No adapter for {platform}",
+                    )
+                draft = await adapter.create_draft(package)
+                return await adapter.publish(draft)
 
-                package.platform_listings.append(pl)
-                await store.set_listing(package)
+        # Run all platforms concurrently, catch per-platform exceptions
+        results = await asyncio.gather(
+            *[_execute_single(p) for p in platforms],
+            return_exceptions=True,
+        )
 
-            except Exception:
-                logger.exception("Execution failed for platform=%s", platform)
+        # Append results sequentially to avoid race conditions on the list
+        for platform, result in zip(platforms, results):
+            if isinstance(result, Exception):
+                logger.error("Execution failed for platform=%s: %s", platform, result, exc_info=result)
                 package.platform_listings.append(PlatformListing(
                     platform=platform,
                     status=PlatformStatus.FAILED,
                     error=f"Execution error on {platform}",
                 ))
+            else:
+                package.platform_listings.append(result)
 
         await store.set_listing(package)
         return package
