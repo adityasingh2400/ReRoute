@@ -39,14 +39,8 @@ class UnifiedInboxSystem:
         is_offer: bool = False,
         offer_amount: float | None = None,
     ) -> ConversationThread:
-        threads = [
-            t for t in store.get_threads_for_item("")
-            if t.thread_id == thread_id
-        ]
-
-        if threads:
-            thread = threads[0]
-        else:
+        thread = store.get_thread(thread_id)
+        if not thread:
             thread = ConversationThread(thread_id=thread_id)
 
         msg = ChatMessage(
