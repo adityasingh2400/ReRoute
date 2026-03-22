@@ -49,11 +49,6 @@ Thumbs.db
 .u2net/
 .gstack/
 
-# Demo cache (pre-computed snapshot data)
-.demo_cache/
-
-# Listing image cache
-backend/.reroutecache/
 
 # Test artifacts
 test.MOV

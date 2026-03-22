@@ -98,7 +98,7 @@
         "shipping": "Local pickup",
         "condition": "Used - Good",
         "url": "https://www.facebook.com/marketplace/item/948302193847162/",
-        "image_url": "/frames/demo_0007.jpg",
+        "image_url": "/listing-images/ipad_1.jpg",
         "match_score": 95.0
       },
       {
@@ -108,7 +108,7 @@
         "shipping": "$7.99",
         "condition": "Used (normal wear)",
         "url": "https://offerup.com/item/detail/1629384758/",
-        "image_url": "/frames/demo_0008.jpg",
+        "image_url": "/listing-images/ipad_2.jpg",
         "match_score": 95.0
       },
       {
@@ -118,7 +118,7 @@
         "shipping": "Local pickup",
         "condition": "Used - Good",
         "url": "https://www.facebook.com/marketplace/item/384716293847162/",
-        "image_url": "/frames/demo_0009.jpg",
+        "image_url": "/listing-images/ipad_3.jpg",
         "match_score": 90.0
       }
     ],
@@ -130,7 +130,7 @@
         "shipping": "Local pickup",
         "condition": "Used - Like New",
         "url": "https://www.facebook.com/marketplace/item/84729102847102/",
-        "image_url": "/frames/demo_0001.jpg",
+        "image_url": "/listing-images/water_bottle_1.jpg",
         "match_score": 100.0
       },
       {
@@ -140,7 +140,7 @@
         "shipping": "$3.49",
         "condition": "Open Box",
         "url": "https://offerup.com/item/detail/129384758",
-        "image_url": "/frames/demo_0002.jpg",
+        "image_url": "/listing-images/water_bottle_2.jpg",
         "match_score": 100.0
       },
       {
@@ -150,7 +150,7 @@
         "shipping": "$5.99",
         "condition": "Used - Like New",
         "url": "https://www.facebook.com/marketplace/item/102938475610293/",
-        "image_url": "/frames/demo_0003.jpg",
+        "image_url": "/listing-images/water_bottle_3.jpg",
         "match_score": 100.0
       }
     ],
@@ -162,7 +162,7 @@
         "shipping": "FREE",
         "condition": "Fair",
         "url": "https://swappa.com/listing/LACY09235/view",
-        "image_url": "/frames/demo_0012.jpg",
+        "image_url": "/listing-images/iphone_1.jpg",
         "match_score": 100.0
       },
       {
@@ -172,7 +172,7 @@
         "shipping": "Calculated",
         "condition": "Fair",
         "url": "https://swappa.com/listing/LABX46844/view",
-        "image_url": "/frames/demo_0013.jpg",
+        "image_url": "/listing-images/iphone_2.jpg",
         "match_score": 100.0
       },
       {
@@ -182,7 +182,7 @@
         "shipping": "FREE",
         "condition": "Fair",
         "url": "https://swappa.com/listing/LXER14929/view",
-        "image_url": "/frames/demo_0014.jpg",
+        "image_url": "/listing-images/iphone_3.jpg",
         "match_score": 100.0
       }
     ],
@@ -194,7 +194,7 @@
         "shipping": "FREE",
         "condition": "Acceptable",
         "url": "https://www.amazon.com/Apple-iPhone-13-Pro-128GB-Sierra-Blue-Unlocked/dp/B09LNW3CY2",
-        "image_url": "https://m.media-amazon.com/images/I/61jLiCovxVL._AC_SL1500_.jpg",
+        "image_url": "/listing-images/iphone_1.jpg",
         "match_score": 95.0
       },
       {
@@ -204,7 +204,7 @@
         "shipping": "$7.97",
         "condition": "Fair",
         "url": "https://poshmark.com/listing/Apple-iPhone-12-Pro-256GB-Graphite-Unlocked-Fair-Condition-65b8f2c1a4b3d2e1f0a9c8b7",
-        "image_url": "https://di2ponv0v5otw.cloudfront.net/posts/2024/02/01/65b8f2c1a4b3d2e1f0a9c8b7/m_65b8f2c5a4b3d2e1f0a9c8b8.jpg",
+        "image_url": "/listing-images/iphone_2.jpg",
         "match_score": 90.0
       },
       {
@@ -214,7 +214,7 @@
         "shipping": "Local pickup",
         "condition": "Fair",
         "url": "https://newyork.craigslist.org/mnh/mob/d/new-york-apple-iphone-13-pro-128gb/7729845321.html",
-        "image_url": "https://images.craigslist.org/00z0z_gYg8TjfzQpQ_0CI0t2_600x450.jpg",
+        "image_url": "/listing-images/iphone_3.jpg",
         "match_score": 95.0
       }
     ],
@@ -226,7 +226,7 @@
         "shipping": "Free",
         "condition": "Good",
         "url": "https://swappa.com/listing/LXXA12345/apple-ipad-10th-gen",
-        "image_url": "/frames/demo_0007.jpg",
+        "image_url": "/listing-images/ipad_1.jpg",
         "match_score": 100.0
       },
       {
@@ -236,7 +236,7 @@
         "shipping": "$7.99",
         "condition": "Good",
         "url": "https://www.mercari.com/us/item/m82736451920/",
-        "image_url": "/frames/demo_0008.jpg",
+        "image_url": "/listing-images/ipad_2.jpg",
         "match_score": 100.0
       },
       {
@@ -246,7 +246,7 @@
         "shipping": "Free",
         "condition": "Good",
         "url": "https://swappa.com/listing/LXXB98765/apple-ipad-9th-gen",
-        "image_url": "/frames/demo_0009.jpg",
+        "image_url": "/listing-images/ipad_3.jpg",
         "match_score": 100.0
       }
     ],
@@ -258,7 +258,7 @@
         "shipping": "$7.97",
         "condition": "NWOB Never been used before",
         "url": "https://poshmark.com/listing/IRON-FLASK-Sports-Water-Bottle-40-Oz-NWOB-642b1f8e9d3c2a1b",
-        "image_url": "/frames/demo_0001.jpg",
+        "image_url": "/listing-images/water_bottle_1.jpg",
         "match_score": 100.0
       },
       {
@@ -268,7 +268,7 @@
         "shipping": "FREE",
         "condition": "Used - Very Good",
         "url": "https://www.amazon.com/dp/B0842T7G18?m=A2L77EE7U53NWQ",
-        "image_url": "/frames/demo_0002.jpg",
+        "image_url": "/listing-images/water_bottle_2.jpg",
         "match_score": 100.0
       },
       {
@@ -278,7 +278,7 @@
         "shipping": "Local pickup",
         "condition": "Like new",
         "url": "https://losangeles.craigslist.org/wst/spo/d/los-angeles-iron-flask-40-oz-stainless/7729104821.html",
-        "image_url": "/frames/demo_0003.jpg",
+        "image_url": "/listing-images/water_bottle_3.jpg",
         "match_score": 100.0
       }
     ],
@@ -290,7 +290,7 @@
         "shipping": "$7.97",
         "condition": "Pre-Owned",
         "url": "https://poshmark.com/listing/APPLE-iPad-w-BONUS-Accessories-2nd-Generation-32GB-Wi-Fi-ONLY-White-MD329LLA",
-        "image_url": "/frames/demo_0007.jpg",
+        "image_url": "/listing-images/ipad_1.jpg",
         "match_score": 90.0
       },
       {
@@ -300,7 +300,7 @@
         "shipping": "$7.97",
         "condition": "Pre-Owned",
         "url": "https://poshmark.com/listing/Apple-iPad-9th-Generation",
-        "image_url": "/frames/demo_0008.jpg",
+        "image_url": "/listing-images/ipad_2.jpg",
         "match_score": 100.0
       },
       {
@@ -310,7 +310,7 @@
         "shipping": "FREE",
         "condition": "Renewed - Good Condition",
         "url": "https://www.amazon.com/dp/B09G9FPHY6",
-        "image_url": "https://m.media-amazon.com/images/I/61NGnpjoR-L._AC_SL1500_.jpg",
+        "image_url": "/listing-images/ipad_3.jpg",
         "match_score": 100.0
       },
       {
@@ -320,7 +320,7 @@
         "shipping": "FREE",
         "condition": "Renewed - Good Condition",
         "url": "https://www.amazon.com/dp/B00XPJWM0G",
-        "image_url": "https://m.media-amazon.com/images/I/617hCvvM0qL._AC_SL1500_.jpg",
+        "image_url": "/listing-images/ipad_4.jpg",
         "match_score": 90.0
       }
     ],
@@ -332,7 +332,7 @@
         "shipping": "Local pickup",
         "condition": "Fair",
         "url": "https://offerup.com/item/detail/fair-condition-iphone-13-pro-max-128gb-gray-att-only",
-        "image_url": "/frames/demo_0012.jpg",
+        "image_url": "/listing-images/iphone_1.jpg",
         "match_score": 85.0
       },
       {
@@ -342,7 +342,7 @@
         "shipping": "Local pickup",
         "condition": "Fair condition",
         "url": "https://offerup.com/item/detail/iphone-13-pro-128",
-        "image_url": "/frames/demo_0013.jpg",
+        "image_url": "/listing-images/iphone_2.jpg",
         "match_score": 95.0
       },
       {
@@ -352,7 +352,7 @@
         "shipping": "Local pickup",
         "condition": "Used",
         "url": "https://offerup.com/search/?q=iPhone+12+Pro+512gb+Unlocked",
-        "image_url": "/frames/demo_0014.jpg",
+        "image_url": "/listing-images/iphone_3.jpg",
         "match_score": 95.0
       },
       {
@@ -362,7 +362,7 @@
         "shipping": "Local pickup",
         "condition": "Used (normal wear)",
         "url": "https://offerup.com/item/detail/iphone-13-pro-max-like-new-99-battery-health",
-        "image_url": "/frames/demo_0015.jpg",
+        "image_url": "/listing-images/iphone_4.jpg",
         "match_score": 80.0
       }
     ],
@@ -374,7 +374,7 @@
         "shipping": "$4.79",
         "condition": "Like New",
         "url": "https://www.mercari.com/us/item/m48291038472/",
-        "image_url": "/frames/demo_0001.jpg",
+        "image_url": "/listing-images/water_bottle_1.jpg",
         "match_score": 95.0
       },
       {
@@ -384,7 +384,7 @@
         "shipping": "$4.79",
         "condition": "Like New",
         "url": "https://www.mercari.com/us/item/m93827164520/",
-        "image_url": "/frames/demo_0002.jpg",
+        "image_url": "/listing-images/water_bottle_2.jpg",
         "match_score": 95.0
       }
     ]
