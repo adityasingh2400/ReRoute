@@ -2410,49 +2410,113 @@ body {
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   MISSION CONTROL — 9-agent grid with live status
+   MISSION CONTROL V2 — Slideshow through pipeline stages
+   Shows only the CURRENT stage. Slides right on progression.
    ══════════════════════════════════════════════════════════════════════════ */
 
-.mission-control {
-  padding: 16px;
+.mission-control-v2 {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
   height: 100%;
+  overflow: hidden;
 }
 
-.mc-stage-label {
+/* ── Stage Navigation Dots ──────────────────────────────────── */
+.mc-stage-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 16px 8px;
+  flex-shrink: 0;
+}
+.mc-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.mc-dot.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+.mc-dot.done {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
+}
+.mc-dot.thinking {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--primary);
+}
+.mc-dot.done .mc-dot-num {
+  color: var(--success);
+}
+.mc-dot-num {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.mc-dot-label {
+  font-weight: 500;
+}
+
+/* ── Stage Content (slides in/out) ──────────────────────────── */
+.mc-stage-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  overflow-y: auto;
+}
+.mc-stage-header {
+  margin-bottom: 16px;
+}
+.mc-stage-number {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: var(--text-tertiary);
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  margin-bottom: 8px;
+  color: var(--primary);
   font-weight: 600;
 }
+.mc-stage-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 4px 0 2px;
+}
+.mc-stage-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
 
-.mc-stage-grid {
+/* ── Agent Cards Row ────────────────────────────────────────── */
+.mc-agents-row {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  flex: 1;
+  align-content: start;
 }
-
-/* Stage 1-2: 2 cards centered */
-.mc-stage-1, .mc-stage-2 {
-  grid-template-columns: repeat(2, 1fr);
+/* 1 agent: centered single card */
+.mc-agents-1 {
+  grid-template-columns: 1fr;
   max-width: 500px;
 }
-
-/* Stage 3: 5 route agents in hero row */
-.mc-stage-3 {
+/* 2 agents */
+.mc-agents-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+/* 5 agents: the hero row */
+.mc-agents-5 {
   grid-template-columns: repeat(5, 1fr);
-}
-
-/* Stage 4-5: 2 cards centered */
-.mc-stage-4, .mc-stage-5 {
-  grid-template-columns: repeat(2, 1fr);
-  max-width: 500px;
 }
 
 .mc-card {
@@ -2486,14 +2550,17 @@ body {
   align-items: center;
   gap: 8px;
 }
-.mc-card-icon {
+.mc-card-icon, .mc-icon-idle {
   color: var(--text-tertiary);
 }
-.mc-card-thinking .mc-card-icon {
+.mc-icon-thinking {
   color: var(--primary);
 }
-.mc-card-done .mc-card-icon {
+.mc-icon-done {
   color: var(--success);
+}
+.mc-icon-error {
+  color: var(--danger);
 }
 .mc-card-name {
   font-size: 12px;
@@ -2570,6 +2637,67 @@ body {
   font-size: 10px;
   color: var(--primary);
   font-family: var(--font-mono);
+}
+
+/* ── Rich Findings inside Agent Cards ──────────────────────── */
+.mc-card-findings {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mc-finding-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  padding: 3px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.mc-finding-item {
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-finding-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.mc-finding-value.not-viable {
+  color: var(--text-tertiary);
+}
+.mc-finding-conf {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+.mc-finding-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.mc-comp-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.mc-comp-more {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  padding: 2px 4px;
 }
 
 

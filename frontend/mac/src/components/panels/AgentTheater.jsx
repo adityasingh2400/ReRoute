@@ -129,7 +129,7 @@ export default function AgentTheater({
   function renderModule() {
     const props = { job, items, bids, decisions, listings, threads, events, agents };
     switch (activeTab) {
-      case 'mission': return <MissionControl agents={agents} items={items} decisions={decisions} />;
+      case 'mission': return <MissionControl agents={agents} items={items} decisions={decisions} bids={bids} />;
       case 'condition': return <ConditionFusion {...props} />;
       case 'market': return <MarketSweep {...props} />;
       case 'quotes': return <QuoteSweep {...props} />;

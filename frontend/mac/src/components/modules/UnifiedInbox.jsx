@@ -60,7 +60,17 @@ export default function UnifiedInbox({ threads: liveThreads, onSendReply }) {
   const [expandedId, setExpandedId] = useState(null);
   const [replyText, setReplyText] = useState({});
 
-  const threads = liveThreads?.length > 0 ? liveThreads : DEMO_THREADS;
+  const threads = liveThreads?.length > 0 ? liveThreads : [];
+
+  if (threads.length === 0) {
+    return (
+      <div className="unified-inbox" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
+        <MessageSquare size={36} style={{ marginBottom: 12, opacity: 0.4 }} />
+        <p style={{ fontSize: 14, marginBottom: 4 }}>No buyer conversations yet</p>
+        <p style={{ fontSize: 12, opacity: 0.6 }}>Conversations will appear here after listings go live</p>
+      </div>
+    );
+  }
 
   const handleExpand = useCallback((id) => {
     setExpandedId((prev) => (prev === id ? null : id));

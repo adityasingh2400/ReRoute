@@ -106,30 +106,36 @@ export default function DecisionPanel({ items, decisions, agents = {}, onExecute
                     )}
                   </div>
 
-                  {decision?.alternatives && (
-                    <div className="dp-route-ladder">
-                      {[
-                        decision.winning_bid,
-                        ...decision.alternatives,
-                      ].filter(Boolean).slice(0, 3).map((route, i) => {
-                        const RouteIcon = ROUTE_ICONS[route.route_type] || TrendingUp;
-                        return (
-                          <div
-                            key={route.route_type}
-                            className={`dp-route ${i === 0 ? 'recommended' : ''}`}
-                          >
-                            <RouteIcon size={14} />
-                            <span className="dp-route-name">
-                              {ROUTE_LABELS[route.route_type] || route.route_type}
-                            </span>
-                            <span className="dp-route-value animated-value">
-                              ${route.estimated_value?.toFixed(2)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {decision?.alternatives && (() => {
+                    // Deduplicate: combine winning_bid + alternatives, remove duplicates by route_type
+                    const seen = new Set();
+                    const routes = [decision.winning_bid, ...decision.alternatives]
+                      .filter(Boolean)
+                      .filter((r) => { if (seen.has(r.route_type)) return false; seen.add(r.route_type); return true; })
+                      .filter((r) => r.viable !== false)
+                      .slice(0, 3);
+                    return (
+                      <div className="dp-route-ladder">
+                        {routes.map((route, i) => {
+                          const RouteIcon = ROUTE_ICONS[route.route_type] || TrendingUp;
+                          return (
+                            <div
+                              key={route.route_type}
+                              className={`dp-route ${i === 0 ? 'recommended' : ''}`}
+                            >
+                              <RouteIcon size={14} />
+                              <span className="dp-route-name">
+                                {ROUTE_LABELS[route.route_type] || route.route_type}
+                              </span>
+                              <span className="dp-route-value animated-value">
+                                ${route.estimated_value?.toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   <button
                     className="dp-execute-btn"
