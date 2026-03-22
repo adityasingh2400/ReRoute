@@ -205,6 +205,7 @@ def create_bundle_opportunity_agent() -> Agent:
         name="bundle_opportunity_agent",
         seed=settings.bundle_opportunity_agent_seed,
         port=8106,
+        network="testnet",
     )
     agent.include(bundle_proto)
     return agent

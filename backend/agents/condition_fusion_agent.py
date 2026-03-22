@@ -162,6 +162,7 @@ def create_condition_fusion_agent() -> Agent:
         name="condition_fusion_agent",
         seed=settings.condition_fusion_agent_seed,
         port=8101,
+        network="testnet",
     )
     agent.include(fusion_proto)
     return agent

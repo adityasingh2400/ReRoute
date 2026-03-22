@@ -117,6 +117,7 @@ def create_return_agent() -> Agent:
         name="return_agent",
         seed=settings.return_agent_seed,
         port=8102,
+        network="testnet",
     )
     agent.include(return_proto)
     return agent

@@ -83,6 +83,7 @@ def create_intake_agent() -> Agent:
         name="intake_agent",
         seed=settings.intake_agent_seed,
         port=8100,
+        network="testnet",
     )
     agent.include(intake_proto)
     return agent

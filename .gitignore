@@ -47,3 +47,4 @@ Thumbs.db
 
 # ONNX models (rembg downloads)
 .u2net/
+.gstack/

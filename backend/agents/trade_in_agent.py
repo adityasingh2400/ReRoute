@@ -242,6 +242,7 @@ def create_trade_in_agent() -> Agent:
         name="trade_in_agent",
         seed=settings.trade_in_agent_seed,
         port=8103,
+        network="testnet",
     )
     agent.include(trade_in_proto)
     return agent

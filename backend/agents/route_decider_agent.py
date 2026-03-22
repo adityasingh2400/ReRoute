@@ -155,6 +155,7 @@ def create_route_decider_agent() -> Agent:
         name="route_decider_agent",
         seed=settings.route_decider_agent_seed,
         port=8107,
+        network="testnet",
     )
     agent.include(decider_proto)
     return agent

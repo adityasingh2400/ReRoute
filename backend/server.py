@@ -257,10 +257,15 @@ async def get_inbox(job_id: str) -> list[dict[str, Any]]:
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     inbox = UnifiedInboxSystem()
-    threads: list[dict[str, Any]] = []
-    for item_id in job.item_ids:
-        ranked = await inbox.rank_buyers(item_id)
-        threads.extend(t.model_dump(mode="json") for t in ranked)
+    # Parallelize ranking across items — rank_buyers is async
+    results = await asyncio.gather(
+        *[inbox.rank_buyers(item_id) for item_id in job.item_ids],
+        return_exceptions=True,
+    )
+    results = [r for r in results if not isinstance(r, Exception)]
+    threads: list[dict[str, Any]] = [
+        t.model_dump(mode="json") for result in results for t in result
+    ]
     return threads
 
 
@@ -308,6 +313,26 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
         manager.disconnect(job_id, websocket)
 
 
+# ── Agent Lifecycle Events ────────────────────────────────────────────────────
+
+
+async def emit_agent_event(job_id: str, event_type: str, data: dict) -> None:
+    """Broadcast agent lifecycle event AND persist state for reconnection.
+
+    Agent event data flow:
+      emit_agent_event() → store.set_agent_state() → manager.broadcast()
+                                                        ↓
+                                           useJob hook receives event
+                                                        ↓
+                                        AgentStatusBar + MissionControl re-render
+    """
+    try:
+        store.set_agent_state(job_id, data.get("agent", ""), {"status": event_type, **data})
+        await manager.broadcast(job_id, event_type, data)
+    except Exception:
+        logger.warning("emit_agent_event failed for job=%s agent=%s", job_id, data.get("agent"), exc_info=True)
+
+
 # ── Pipeline Orchestration ────────────────────────────────────────────────────
 
 
@@ -326,6 +351,7 @@ async def run_pipeline(job_id: str) -> None:
         print(f"[PIPELINE] Stage 1: Extracting frames and transcript...")
         t0 = _time.time()
         await store.update_job_status(job_id, JobStatus.EXTRACTING)
+        await emit_agent_event(job_id, "agent_started", {"agent": "intake", "message": "Extracting video frames and transcript..."})
 
         from backend.systems.transcript_extraction import (
             TranscriptAndFrameExtractionSystem,
@@ -333,6 +359,12 @@ async def run_pipeline(job_id: str) -> None:
 
         extractor = TranscriptAndFrameExtractionSystem()
         transcript, frame_paths = await extractor.process(job_id, job.video_path)
+        elapsed_1 = round((_time.time() - t0) * 1000)
+        await emit_agent_event(job_id, "agent_completed", {
+            "agent": "intake",
+            "message": f"Extracted {len(frame_paths)} frames, {len(transcript)} chars",
+            "elapsed_ms": elapsed_1,
+        })
         print(f"[PIPELINE] ✓ Extraction done in {_time.time()-t0:.1f}s — {len(frame_paths)} frames, {len(transcript)} chars transcript")
 
         job = await store.update_job_status(
@@ -345,6 +377,7 @@ async def run_pipeline(job_id: str) -> None:
         # ── Stage 2: Gemini video analysis ──
         print(f"[PIPELINE] Stage 2: Sending to Gemini 3.1 Pro for item analysis...")
         t1 = _time.time()
+        await emit_agent_event(job_id, "agent_started", {"agent": "condition_fusion", "message": "Analyzing video with Gemini..."})
 
         from backend.services.gemini import GeminiService
 
@@ -354,12 +387,23 @@ async def run_pipeline(job_id: str) -> None:
             transcript=job.transcript_text or "",
             frame_paths=job.frame_paths,
         )
-        print(f"[PIPELINE] ✓ Gemini analysis done in {_time.time()-t1:.1f}s — {len(items)} items detected")
+        await emit_agent_event(job_id, "agent_progress", {
+            "agent": "condition_fusion",
+            "message": f"Found {len(items)} items",
+            "progress": 0.7,
+        })
 
         for item in items:
             item.job_id = job_id
             await store.add_item(item)
             print(f"[PIPELINE]   • {item.name_guess} (confidence: {item.confidence:.0%}, defects: {len(item.all_defects)})")
+
+        await emit_agent_event(job_id, "agent_completed", {
+            "agent": "condition_fusion",
+            "message": f"Graded {len(items)} items",
+            "elapsed_ms": round((_time.time() - t1) * 1000),
+        })
+        print(f"[PIPELINE] ✓ Gemini analysis done in {_time.time()-t1:.1f}s — {len(items)} items detected")
 
         if not items:
             print(f"[PIPELINE] No items detected, completing job")
@@ -374,17 +418,80 @@ async def run_pipeline(job_id: str) -> None:
         print(f"[PIPELINE] Stage 3: Collecting route bids for ALL {len(items)} items CONCURRENTLY...")
         t2 = _time.time()
 
+        # Map route_type values to agent names for lifecycle events
+        ROUTE_TO_AGENT = {
+            "sell_as_is": "marketplace_resale",
+            "trade_in": "trade_in",
+            "repair_then_sell": "repair_roi",
+            "return": "return",
+            "bundle_then_sell": "bundle_opportunity",
+        }
+
         async def _process_item(i: int, item: ItemCard) -> None:
             print(f"[PIPELINE]   [{i+1}/{len(items)}] Bidding on: {item.name_guess}")
             item_t = _time.time()
+
+            # Emit agent_started for all route agents that will bid on this item
+            bid_agents = ["marketplace_resale", "return"]
+            if item.is_electronics:
+                bid_agents.append("trade_in")
+            if item.has_defects:
+                bid_agents.append("repair_roi")
+            if len(items) > 1:
+                bid_agents.append("bundle_opportunity")
+
+            for agent in bid_agents:
+                await emit_agent_event(job_id, "agent_started", {
+                    "agent": agent, "item_id": item.item_id,
+                    "message": f"Evaluating {item.name_guess}...",
+                })
+
             bids = await _collect_route_bids(item)
             print(f"[PIPELINE]   [{i+1}] ✓ Got {len(bids)} bids in {_time.time()-item_t:.1f}s")
+
+            completed_agents = set()
             for bid in bids:
                 await store.add_bid(bid)
+                agent_name = ROUTE_TO_AGENT.get(bid.route_type.value)
+                if agent_name and agent_name in bid_agents:
+                    completed_agents.add(agent_name)
+                    await emit_agent_event(job_id, "agent_completed", {
+                        "agent": agent_name, "item_id": item.item_id,
+                        "message": f"${bid.estimated_value:.0f} — {bid.explanation}",
+                        "confidence": bid.confidence,
+                        "elapsed_ms": round((_time.time() - item_t) * 1000),
+                    })
                 print(f"[PIPELINE]     → {bid.route_type.value}: ${bid.estimated_value:.2f} (conf: {bid.confidence:.0%}, viable: {bid.viable})")
 
+            # Mark any agents that didn't produce a bid as completed (non-viable)
+            for agent in bid_agents:
+                if agent not in completed_agents and agent != "bundle_opportunity":
+                    await emit_agent_event(job_id, "agent_completed", {
+                        "agent": agent, "item_id": item.item_id,
+                        "message": "Not viable for this item",
+                        "elapsed_ms": round((_time.time() - item_t) * 1000),
+                    })
+
+            # Bundle agent completes after all bids collected
+            if "bundle_opportunity" in bid_agents:
+                await emit_agent_event(job_id, "agent_completed", {
+                    "agent": "bundle_opportunity", "item_id": item.item_id,
+                    "message": f"Evaluated bundle potential for {len(items)} items",
+                    "elapsed_ms": round((_time.time() - item_t) * 1000),
+                })
+
+            # Stage 4: Route decision
+            await emit_agent_event(job_id, "agent_started", {
+                "agent": "route_decider", "item_id": item.item_id,
+                "message": f"Scoring {len(bids)} bids...",
+            })
             decision = _decide_best_route(item.item_id, bids)
             await store.set_decision(decision)
+            await emit_agent_event(job_id, "agent_completed", {
+                "agent": "route_decider", "item_id": item.item_id,
+                "message": f"Best: {decision.best_route.value} → ${decision.estimated_best_value:.2f}",
+                "elapsed_ms": round((_time.time() - item_t) * 1000),
+            })
             print(f"[PIPELINE]   [{i+1}] ★ Best route: {decision.best_route.value} → ${decision.estimated_best_value:.2f}")
 
             try:
@@ -417,7 +524,29 @@ async def run_pipeline(job_id: str) -> None:
             except Exception as exc:
                 print(f"[PIPELINE]   [{i+1}] ⚠ Asset optimization skipped: {exc}")
 
-        await asyncio.gather(*[_process_item(i, item) for i, item in enumerate(items)])
+        results = await asyncio.gather(
+            *[_process_item(i, item) for i, item in enumerate(items)],
+            return_exceptions=True,
+        )
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error("Processing failed for item %d: %s", i, result, exc_info=result)
+                # Emit agent_error for all agents that were started for this item
+                # so they don't stay stuck in "thinking" forever
+                item = items[i]
+                failed_agents = ["marketplace_resale", "return"]
+                if item.is_electronics:
+                    failed_agents.append("trade_in")
+                if item.has_defects:
+                    failed_agents.append("repair_roi")
+                if len(items) > 1:
+                    failed_agents.append("bundle_opportunity")
+                failed_agents.append("route_decider")
+                for agent in failed_agents:
+                    await emit_agent_event(job_id, "agent_error", {
+                        "agent": agent, "item_id": item.item_id,
+                        "error": f"Processing failed: {result}",
+                    })
         print(f"[PIPELINE] ✓ All {len(items)} items processed in {_time.time()-t2:.1f}s (concurrent)")
 
         await store.update_job_status(job_id, JobStatus.COMPLETED)

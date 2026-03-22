@@ -1,6 +1,25 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { uploadVideo, getJobState, executeItem as execItem, sendReply as replyApi } from '../utils/api';
+
+// Priority-based aggregation mirroring backend store.py logic.
+// For each agent, we track state per item_id and expose the highest-priority
+// (most active) state. This prevents multi-item clobbering: if item-1 completes
+// but item-2 is still thinking, the agent shows "thinking".
+const STATUS_PRIORITY = { thinking: 3, error: 2, done: 1 };
+
+function aggregateAgents(raw) {
+  const result = {};
+  for (const [agentName, itemMap] of Object.entries(raw)) {
+    let best = null, bestP = -1;
+    for (const state of Object.values(itemMap)) {
+      const p = STATUS_PRIORITY[state.status] ?? 0;
+      if (p > bestP) { best = state; bestP = p; }
+    }
+    if (best) result[agentName] = best;
+  }
+  return result;
+}
 
 export function useJob(jobId) {
   const [job, setJob] = useState(null);
@@ -9,6 +28,10 @@ export function useJob(jobId) {
   const [decisions, setDecisions] = useState({});
   const [listings, setListings] = useState({});
   const [threads, setThreads] = useState([]);
+  // Internal: per-item agent states: { agentName: { itemId: state } }
+  const [agentsRaw, setAgentsRaw] = useState({});
+  // Exposed: aggregated agent states (highest priority per agent)
+  const agents = useMemo(() => aggregateAgents(agentsRaw), [agentsRaw]);
 
   const { connected, events, lastEvent, subscribe } = useWebSocket(jobId);
   const initialized = useRef(false);
@@ -28,6 +51,14 @@ export function useJob(jobId) {
         if (state.threads) {
           const flat = Object.values(state.threads || {}).flat();
           setThreads(flat);
+        }
+        if (state.agent_states) {
+          // Backend returns aggregated states; convert to per-item raw format
+          const raw = {};
+          for (const [agent, st] of Object.entries(state.agent_states)) {
+            raw[agent] = { [st.item_id || '_global']: st };
+          }
+          setAgentsRaw(raw);
         }
       })
       .catch(() => {});
@@ -49,6 +80,7 @@ export function useJob(jobId) {
             const flat = Object.values(data.threads || {}).flat();
             setThreads(flat);
           }
+          if (data.agent_states) setAgents(data.agent_states);
           break;
 
         case 'job_created':
@@ -86,6 +118,36 @@ export function useJob(jobId) {
             return idx >= 0
               ? prev.map((t, j) => (j === idx ? { ...t, ...data } : t))
               : [...prev, data];
+          });
+          break;
+
+        case 'agent_started':
+          setAgentsRaw((prev) => {
+            const itemId = data.item_id || '_global';
+            const agentMap = { ...prev[data.agent], [itemId]: { status: 'thinking', message: data.message, progress: 0, item_id: data.item_id } };
+            return { ...prev, [data.agent]: agentMap };
+          });
+          break;
+        case 'agent_progress':
+          setAgentsRaw((prev) => {
+            const itemId = data.item_id || '_global';
+            const existing = prev[data.agent]?.[itemId] || {};
+            const agentMap = { ...prev[data.agent], [itemId]: { ...existing, message: data.message, confidence: data.confidence, progress: data.progress } };
+            return { ...prev, [data.agent]: agentMap };
+          });
+          break;
+        case 'agent_completed':
+          setAgentsRaw((prev) => {
+            const itemId = data.item_id || '_global';
+            const agentMap = { ...prev[data.agent], [itemId]: { status: 'done', message: data.message, elapsed_ms: data.elapsed_ms, confidence: data.confidence, item_id: data.item_id } };
+            return { ...prev, [data.agent]: agentMap };
+          });
+          break;
+        case 'agent_error':
+          setAgentsRaw((prev) => {
+            const itemId = data.item_id || '_global';
+            const agentMap = { ...prev[data.agent], [itemId]: { status: 'error', message: data.error || data.message, elapsed_ms: data.elapsed_ms, item_id: data.item_id } };
+            return { ...prev, [data.agent]: agentMap };
           });
           break;
       }
@@ -128,6 +190,7 @@ export function useJob(jobId) {
     decisions,
     listings,
     threads,
+    agents,
     connected,
     events,
     lastEvent,

@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Monitor, Wifi, WifiOff } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, Activity } from 'lucide-react';
 import Layout from './components/Layout';
 import { useJob } from './hooks/useJob';
 
@@ -15,6 +15,7 @@ export default function App() {
     decisions,
     listings,
     threads,
+    agents,
     connected,
     events,
     lastEvent,
@@ -22,6 +23,15 @@ export default function App() {
     executeItem,
     sendReply,
   } = useJob(jobId);
+
+  const agentSummary = useMemo(() => {
+    const entries = Object.values(agents);
+    // Handle both normalized (thinking/done) and raw backend (agent_started/agent_completed) statuses
+    const active = entries.filter((a) => ['thinking', 'agent_started', 'agent_progress'].includes(a.status)).length;
+    const done = entries.filter((a) => ['done', 'agent_completed'].includes(a.status)).length;
+    const total = entries.length;
+    return { active, done, total };
+  }, [agents]);
 
   const handleUpload = useCallback(async (file) => {
     const id = await uploadAndStart(file);
@@ -37,6 +47,16 @@ export default function App() {
           <span className="topbar-subtitle">Command Center</span>
         </div>
         <div className="topbar-controls">
+          {agentSummary.total > 0 && (
+            <div className="topbar-agents">
+              <Activity size={14} className={agentSummary.active > 0 ? 'agent-active-icon' : ''} />
+              <span>
+                {agentSummary.active > 0
+                  ? `${agentSummary.active} agent${agentSummary.active !== 1 ? 's' : ''} working`
+                  : `${agentSummary.done}/${agentSummary.total} complete`}
+              </span>
+            </div>
+          )}
           <div className="topbar-status">
             <span className={`status-dot ${connected ? '' : 'disconnected'}`} />
             {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
@@ -61,6 +81,7 @@ export default function App() {
           decisions={decisions}
           listings={listings}
           threads={threads}
+          agents={agents}
           events={events}
           lastEvent={lastEvent}
           onUpload={handleUpload}
