@@ -3107,7 +3107,7 @@ body {
 }
 .planet-core-done {
   border-color: var(--success);
-  box-shadow: 4px 4px 0 rgba(74, 122, 46, 0.25);
+  box-shadow: 4px 4px 0 rgba(74, 122, 46, 0.2);
 }
 .planet-img {
   width: 100%;
@@ -3310,12 +3310,12 @@ body {
   color: var(--primary);
 }
 .sat-conf {
-  font-size: 8px;
+  font-size: 9px;
   font-family: var(--font-mono);
   color: var(--text-tertiary);
   background: #EDE4DA;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 .sat-err {
   font-size: 9px;
@@ -3326,39 +3326,33 @@ body {
 /* ── Floating Comparables Cloud ────────────────────────────── */
 .flt-comps-cloud {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 14px;
   z-index: 2;
   position: relative;
+  padding: 0 8px;
 }
 .flt-comps-label {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   justify-content: center;
 }
 .flt-comps-rail {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 2px 0 6px;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 2px 0 8px;
 }
-.flt-comps-rail::-webkit-scrollbar { height: 2px; }
-.flt-comps-rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 .flt-comp-card {
   flex-shrink: 0;
-  width: 80px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   border: 2px solid #222;
   overflow: hidden;
@@ -3367,19 +3361,20 @@ body {
 }
 .flt-comp-card:hover {
   border-color: var(--primary);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 3px 5px 0 rgba(0,0,0,0.12);
 }
 .flt-comp-plat {
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: 2px 4px;
+  padding: 3px 6px;
   color: var(--cream);
   text-align: center;
 }
 .flt-comp-img {
-  height: 36px;
+  height: 48px;
   background: var(--bg-elevated);
   display: flex;
   align-items: center;
@@ -3392,22 +3387,22 @@ body {
   object-fit: cover;
 }
 .flt-comp-price {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   font-family: var(--font-mono);
   color: var(--success);
-  padding: 3px 4px 1px;
+  padding: 4px 6px 2px;
   text-align: center;
 }
 .flt-comp-title {
-  font-size: 8px;
+  font-size: 9px;
   color: var(--text-secondary);
-  padding: 0 4px 3px;
+  padding: 0 6px 5px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.2;
+  line-height: 1.3;
   text-align: center;
 }
 
@@ -3415,10 +3410,11 @@ body {
 .flt-tradein {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-top: 6px;
-  width: 100%;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  width: calc(100% - 16px);
+  margin-left: 8px;
   z-index: 2;
   position: relative;
 }
@@ -3697,8 +3693,9 @@ body {
 .mc-stage3-counter {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 6px;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 24px;
 }
 .mc-s3-badge {
   display: inline-flex;
@@ -4618,7 +4615,7 @@ body {
   gap: 4px;
   padding: 3px 8px 3px 4px;
   border-radius: 100px;
-  background: #1A0808;
+  background: var(--bg-card);
   border: 1px solid #EAE0D5;
   transition: all 0.3s ease;
   min-width: 0;

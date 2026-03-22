@@ -163,21 +163,21 @@ function FloatingAgentSatellite({ agentId, state, bid, orbitIndex, isExpanded, o
         scale: 1,
         ...(status === 'thinking' ? {} : {}),
       }}
-      transition={{ delay: orbitIndex * 0.12, type: 'spring', stiffness: 250, damping: 20 }}
+      transition={{ delay: orbitIndex * 0.2, type: 'spring', stiffness: 250, damping: 20 }}
       onClick={onToggle}
       style={{ '--agent-accent': meta.color }}
     >
       <div className={`sat-icon-orb sat-orb-${status}`}>
         {status === 'thinking' && <div className="sat-ripple" />}
         {status === 'thinking' && <div className="sat-ripple sat-ripple-2" />}
-        <Icon size={16} />
+        <Icon size={18} />
       </div>
       <span className="sat-name">{meta.name}</span>
       {status === 'done' && hasBid && (
         <motion.span className="sat-value"
           initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
-          <DollarSign size={10} />{bid.estimated_value?.toFixed(0)}
+          <DollarSign size={11} />{bid.estimated_value?.toFixed(0)}
         </motion.span>
       )}
       {status === 'done' && !hasBid && <span className="sat-na">N/A</span>}
@@ -203,26 +203,31 @@ function FloatingCompsCloud({ comps }) {
         <Search size={10} /> {comps.length} listings found
       </div>
       <div className="flt-comps-rail">
-        {comps.slice(0, 6).map((c, ci) => (
-          <motion.div key={ci} className="flt-comp-card"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: ci * 0.06, type: 'spring', stiffness: 280, damping: 22 }}>
-            <div className={`flt-comp-plat plat-${(c.platform || 'other').toLowerCase()}`}>
-              {(c.platform || 'other').charAt(0).toUpperCase() + (c.platform || 'other').slice(1)}
-            </div>
-            {c.image_url ? (
-              <div className="flt-comp-img">
-                <img src={c.image_url} alt="" referrerPolicy="no-referrer" loading="lazy"
-                  onError={(e) => { e.target.onerror = null; e.target.parentElement.classList.add('ibc-lc-noimg'); e.target.replaceWith(Object.assign(document.createElement('span'), { className: 'ibc-lc-fallback-icon' })); }} />
+        {comps.slice(0, 6).map((c, ci) => {
+          const baseDelay = 0.6;
+          const jitter = [0, 0.15, -0.08, 0.22, -0.12, 0.18][ci] || 0;
+          const staggerDelay = baseDelay + ci * 0.45 + jitter;
+          return (
+            <motion.div key={ci} className="flt-comp-card"
+              initial={{ opacity: 0, scale: 0.7, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: staggerDelay, type: 'spring', stiffness: 220, damping: 24 }}>
+              <div className={`flt-comp-plat plat-${(c.platform || 'other').toLowerCase()}`}>
+                {(c.platform || 'other').charAt(0).toUpperCase() + (c.platform || 'other').slice(1)}
               </div>
-            ) : (
-              <div className="flt-comp-img ibc-lc-noimg"><ShoppingBag size={14} /></div>
-            )}
-            <div className="flt-comp-price">${c.price?.toFixed(0)}</div>
-            <div className="flt-comp-title">{c.title}</div>
-          </motion.div>
-        ))}
+              {c.image_url ? (
+                <div className="flt-comp-img">
+                  <img src={c.image_url} alt="" referrerPolicy="no-referrer" loading="lazy"
+                    onError={(e) => { e.target.onerror = null; e.target.parentElement.classList.add('ibc-lc-noimg'); e.target.replaceWith(Object.assign(document.createElement('span'), { className: 'ibc-lc-fallback-icon' })); }} />
+                </div>
+              ) : (
+                <div className="flt-comp-img ibc-lc-noimg"><ShoppingBag size={14} /></div>
+              )}
+              <div className="flt-comp-price">${c.price?.toFixed(0)}</div>
+              <div className="flt-comp-title">{c.title}</div>
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -296,7 +301,7 @@ function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3
       className={`planet-system ${anyThinking ? 'planet-active' : ''} ${allDone ? 'planet-done' : ''}`}
       initial={{ opacity: 0, scale: 0.7 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: itemIndex * 0.15, type: 'spring', stiffness: 180, damping: 20 }}
+      transition={{ delay: itemIndex * 0.25, type: 'spring', stiffness: 160, damping: 20 }}
     >
       {/* Connection lines from planet to satellites */}
       <svg className="planet-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -319,7 +324,7 @@ function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3
         {item.hero_frame_paths?.[0] ? (
           <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="planet-img" />
         ) : (
-          <div className="planet-placeholder"><ShoppingBag size={24} /></div>
+          <div className="planet-placeholder"><ShoppingBag size={32} /></div>
         )}
         <div className="planet-glow" />
       </motion.div>
@@ -467,32 +472,157 @@ function DecisionContent({ decisions, items, onExecuteItem }) {
   const decisionList = Object.values(decisions);
   if (decisionList.length === 0) return null;
 
+  const totalValue = decisionList.reduce((sum, d) => sum + (d.estimated_best_value || 0), 0);
+
+  const TRIFECTA_POS = [
+    'trifecta-top',
+    'trifecta-bottom-left',
+    'trifecta-bottom-right',
+  ];
+
+  const itemsWithDecisions = items.filter((item) => decisions[item.item_id]);
+
   return (
     <div className="mc-embedded">
-      <div className="mc-decisions-grid">
-        {items.map((item) => {
+      <div className="decision-trifecta">
+        {/* Central Decider Hub */}
+        <motion.div className="dt-hub"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 20 }}>
+          <div className="dt-hub-glow" />
+          <div className="dt-hub-inner">
+            <div className="dt-hub-icon-ring">
+              <Trophy size={24} />
+            </div>
+            <div className="dt-hub-label">Route Decider</div>
+            <div className="dt-hub-total">
+              <span className="dt-hub-total-label">Total Recovery</span>
+              <AnimatedValue value={totalValue} prefix="$" decimals={2} large positive />
+            </div>
+            <div className="dt-hub-items">
+              {itemsWithDecisions.map((item) => {
+                const d = decisions[item.item_id];
+                const Icon = ROUTE_ICONS[d.best_route] || Trophy;
+                return (
+                  <div key={item.item_id} className="dt-hub-item-row">
+                    <Icon size={12} />
+                    <span className="dt-hub-item-name">{item.name_guess?.split(' ').slice(0, 3).join(' ')}</span>
+                    <span className="dt-hub-item-route">{ROUTE_LABELS[d.best_route]}</span>
+                    <span className="dt-hub-item-val">${d.estimated_best_value?.toFixed(0)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Connector lines (SVG) */}
+        <svg className="dt-connectors" viewBox="0 0 800 600" preserveAspectRatio="none">
+          {itemsWithDecisions.map((_, i) => {
+            const paths = [
+              'M 400 200 Q 400 80 400 40',
+              'M 320 280 Q 160 360 120 440',
+              'M 480 280 Q 640 360 680 440',
+            ];
+            return (
+              <motion.path key={i} d={paths[i % 3]} className="dt-conn-line"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay: 0.3 + i * 0.15, duration: 0.6, ease: 'easeOut' }} />
+            );
+          })}
+        </svg>
+
+        {/* Route Cards in trifecta positions */}
+        {itemsWithDecisions.slice(0, 3).map((item, i) => {
           const d = decisions[item.item_id];
-          if (!d) return null;
           const Icon = ROUTE_ICONS[d.best_route] || Trophy;
+          const posClass = TRIFECTA_POS[i % 3];
+
+          const routes = (() => {
+            if (!d.alternatives) return [];
+            const seen = new Set();
+            return [d.winning_bid, ...d.alternatives]
+              .filter(Boolean)
+              .filter((r) => { if (seen.has(r.route_type)) return false; seen.add(r.route_type); return true; })
+              .filter((r) => r.viable !== false)
+              .slice(0, 3);
+          })();
+
           return (
-            <motion.div key={item.item_id} className="mc-decision-card"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}>
-              <div className="mc-decision-header">
-                <span className="mc-decision-item">{item.name_guess}</span>
-                <Badge variant="success">{ROUTE_LABELS[d.best_route] || d.best_route}</Badge>
+            <motion.div key={item.item_id}
+              className={`dt-card ${posClass}`}
+              initial={{ opacity: 0, scale: 0.85, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.12, type: 'spring', stiffness: 200, damping: 22 }}>
+              <div className="dt-card-top">
+                {item.hero_frame_paths?.[0] && (
+                  <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="dt-card-thumb" />
+                )}
+                <div className="dt-card-meta">
+                  <span className="dt-card-name">{item.name_guess}</span>
+                  <Badge variant="success">{ROUTE_LABELS[d.best_route] || d.best_route}</Badge>
+                </div>
               </div>
-              <div className="mc-decision-value">
+              <div className="dt-card-value">
                 <Icon size={18} />
                 <AnimatedValue value={d.estimated_best_value || 0} prefix="$" decimals={2} positive />
               </div>
-              <div className="mc-decision-reason">{d.route_reason}</div>
-              <button className="mc-decision-execute" onClick={() => onExecuteItem?.(item.item_id, ['ebay', 'mercari'])}>
+              {d.route_reason && <div className="dt-card-reason">{d.route_reason}</div>}
+              {routes.length > 0 && (
+                <div className="dt-card-routes">
+                  {routes.map((route, ri) => {
+                    const RouteIcon = ROUTE_ICONS[route.route_type] || TrendingUp;
+                    return (
+                      <div key={route.route_type} className={`dt-card-route ${ri === 0 ? 'winner' : ''}`}>
+                        <RouteIcon size={12} />
+                        <span className="dt-card-route-label">{ROUTE_LABELS[route.route_type] || route.route_type}</span>
+                        <span className="dt-card-route-val">${route.estimated_value?.toFixed(0)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <button className="dt-card-execute" onClick={() => onExecuteItem?.(item.item_id, ['ebay', 'mercari'])}>
                 <Zap size={13} /> Execute Route
               </button>
             </motion.div>
           );
         })}
+
+        {/* Overflow items (4+) in a row below */}
+        {itemsWithDecisions.length > 3 && (
+          <div className="dt-overflow">
+            {itemsWithDecisions.slice(3).map((item, i) => {
+              const d = decisions[item.item_id];
+              const Icon = ROUTE_ICONS[d.best_route] || Trophy;
+              return (
+                <motion.div key={item.item_id} className="dt-card dt-overflow-card"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.1 }}>
+                  <div className="dt-card-top">
+                    {item.hero_frame_paths?.[0] && (
+                      <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="dt-card-thumb" />
+                    )}
+                    <div className="dt-card-meta">
+                      <span className="dt-card-name">{item.name_guess}</span>
+                      <Badge variant="success">{ROUTE_LABELS[d.best_route] || d.best_route}</Badge>
+                    </div>
+                  </div>
+                  <div className="dt-card-value">
+                    <Icon size={18} />
+                    <AnimatedValue value={d.estimated_best_value || 0} prefix="$" decimals={2} positive />
+                  </div>
+                  <button className="dt-card-execute" onClick={() => onExecuteItem?.(item.item_id, ['ebay', 'mercari'])}>
+                    <Zap size={13} /> Execute Route
+                  </button>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
