@@ -191,6 +191,7 @@ export function useJob(jobId) {
     listings,
     threads,
     agents,
+    agentsRaw,
     connected,
     events,
     lastEvent,

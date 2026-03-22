@@ -155,9 +155,9 @@ class GeminiService:
                 "  accessories_included (array of strings)\n"
                 "  accessories_missing (array of strings)\n"
                 "  confidence (float 0-1)\n"
-                "  hero_frame_indices (array of integers): 0-based indices of best frames\n"
-                "  segment_start_sec (float)\n"
-                "  segment_end_sec (float)\n\n"
+                f"  hero_frame_indices (array of integers): 0-based indices into the {len(frame_paths)} extracted frames (valid range: 0 to {len(frame_paths) - 1}). Pick 2-3 frames that BEST show THIS specific item.\n"
+                "  segment_start_sec (float): when this item first appears in the video\n"
+                "  segment_end_sec (float): when the camera moves away from this item\n\n"
                 "Transcript of user speech:\n"
                 + (transcript or "(no transcript available)")
                 + "\n\nReturn ONLY a valid JSON array. No markdown fences. No extra text."
@@ -181,11 +181,31 @@ class GeminiService:
             print(f"[GEMINI] Parsed {len(items_data)} items from response")
 
             cards: list[ItemCard] = []
-            for item in items_data:
+            total_frames = len(frame_paths)
+            for item_idx, item in enumerate(items_data):
                 hero_indices = item.get("hero_frame_indices", [])
-                hero_frames_fs = [frame_paths[i] for i in hero_indices if i < len(frame_paths)]
+                hero_frames_fs = [frame_paths[i] for i in hero_indices if 0 <= i < total_frames]
+
+                # Fallback: use segment timestamps to pick frames from the right part of the video
                 if not hero_frames_fs and frame_paths:
-                    hero_frames_fs = frame_paths[:3]
+                    seg_start = float(item.get("segment_start_sec", 0))
+                    seg_end = float(item.get("segment_end_sec", 0))
+                    if seg_end > seg_start and total_frames > 1:
+                        # Estimate which frames correspond to this item's video segment
+                        # Assume frames are uniformly distributed across a ~30s video
+                        video_duration = max(seg_end * 1.2, 30.0)  # rough estimate
+                        start_idx = max(0, int(seg_start / video_duration * total_frames))
+                        end_idx = min(total_frames, int(seg_end / video_duration * total_frames) + 1)
+                        segment_frames = frame_paths[start_idx:end_idx]
+                        if segment_frames:
+                            # Pick up to 3 evenly spaced frames from the segment
+                            step = max(1, len(segment_frames) // 3)
+                            hero_frames_fs = segment_frames[::step][:3]
+                    if not hero_frames_fs:
+                        # Last resort: divide frames evenly among items
+                        chunk = max(1, total_frames // len(items_data))
+                        start = item_idx * chunk
+                        hero_frames_fs = frame_paths[start:start + min(3, chunk)]
 
                 hero_frame_urls = [_frame_path_to_url(p) for p in hero_frames_fs]
 

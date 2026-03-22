@@ -16,6 +16,7 @@ export default function App() {
     listings,
     threads,
     agents,
+    agentsRaw,
     connected,
     events,
     lastEvent,
@@ -82,6 +83,7 @@ export default function App() {
           listings={listings}
           threads={threads}
           agents={agents}
+          agentsRaw={agentsRaw}
           events={events}
           lastEvent={lastEvent}
           onUpload={handleUpload}

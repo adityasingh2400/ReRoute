@@ -12,6 +12,7 @@ export default function Layout({
   listings,
   threads,
   agents,
+  agentsRaw,
   events,
   lastEvent,
   onUpload,
@@ -42,6 +43,7 @@ export default function Layout({
           listings={listings}
           threads={threads}
           agents={agents}
+          agentsRaw={agentsRaw}
           events={events}
           lastEvent={lastEvent}
           onExecuteItem={onExecuteItem}
