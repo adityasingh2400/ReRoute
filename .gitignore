@@ -27,6 +27,14 @@ data/jobs/*
 node_modules/
 dist/
 
+# Demo browser automation (sessions + local overrides)
+demo-automation/.env
+demo-automation/auth/*.json
+!demo-automation/auth/.gitkeep
+demo-automation/demo-flow.local.js
+demo-automation/test-results/
+demo-automation/playwright-report/
+
 # OS
 .DS_Store
 Thumbs.db
