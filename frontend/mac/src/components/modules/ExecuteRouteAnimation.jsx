@@ -89,7 +89,7 @@ export default function ExecuteRouteAnimation({ onComplete }) {
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('branches'), 400);
     const t2 = setTimeout(() => setPhase('glow'), 1200);
-    const t3 = setTimeout(() => onComplete(), 2600);
+    const t3 = setTimeout(() => onComplete(), 4600);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 
