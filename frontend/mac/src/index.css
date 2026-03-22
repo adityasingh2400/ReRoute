@@ -906,43 +906,46 @@ body {
 /* ── Card Rail ── */
 .sw-lane-rail {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   overflow-x: auto;
-  padding: 4px 0 12px;
+  padding: 8px 4px 16px;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-.sw-lane-rail::-webkit-scrollbar { height: 3px; }
+.sw-lane-rail::-webkit-scrollbar { height: 4px; }
+.sw-lane-rail::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
 
 /* ── Generic Card ── */
 .sw-card {
-  min-width: 210px;
-  max-width: 210px;
+  min-width: 240px;
+  max-width: 240px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   flex-shrink: 0;
-  transition: all var(--transition-base);
+  transition: all var(--transition-slow);
+  box-shadow: var(--shadow-sm);
 }
 
 .sw-card:hover {
-  border-color: var(--border-bright);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--shadow-lg);
 }
 
 .sw-card-best {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 16px var(--primary-glow);
-  transform: translateY(-3px) scale(1.02);
+  border-width: 2px;
+  box-shadow: 0 4px 24px var(--primary-glow), 0 0 0 1px var(--primary-glow);
+  transform: translateY(-4px) scale(1.03);
 }
 
 /* ── Card Image ── */
 .sw-card-img {
-  height: 130px;
-  background: var(--bg-elevated);
+  height: 170px;
+  background: linear-gradient(135deg, var(--bg-elevated), var(--cream-mid));
   position: relative;
   overflow: hidden;
 }
@@ -950,7 +953,13 @@ body {
 .sw-card-img img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 8px;
+  transition: transform 0.4s ease;
+}
+
+.sw-card:hover .sw-card-img img {
+  transform: scale(1.05);
 }
 
 .sw-card-img-fallback {
@@ -975,33 +984,35 @@ body {
 
 /* ── Card Body ── */
 .sw-card-body {
-  padding: 10px 12px 12px;
+  padding: 12px 14px 14px;
 }
 
 .sw-card-title {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
-  min-height: 28px;
+  line-height: 1.4;
+  min-height: 32px;
+  letter-spacing: -0.01em;
 }
 
 .sw-card-price-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .sw-card-price {
   font-family: var(--font-mono);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--primary);
+  letter-spacing: -0.02em;
 }
 
 .sw-card-shipping {
@@ -4417,7 +4428,7 @@ body {
   transition: background 0.4s ease;
 }
 .ab2-conn-done .ab2-conn-line {
-  background: var(--success);
+  background: var(--primary);
   opacity: 0.6;
 }
 .ab2-fork-indicator {
@@ -4499,9 +4510,9 @@ body {
 }
 
 .ab2-done .ab2-icon-ring {
-  border-color: var(--success);
-  color: var(--success);
-  background: #E5EDE0;
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
 }
 
 @keyframes ab2-pulse {
@@ -4516,6 +4527,23 @@ body {
   color: var(--text-tertiary);
   white-space: nowrap;
   transition: all 0.4s ease;
+}
+
+.ab2-clickable {
+  cursor: pointer;
+}
+.ab2-clickable:hover .ab2-icon-ring {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: scale(1.08);
+}
+.ab2-clickable:hover .ab2-label,
+.ab2-clickable:hover .ab2-cluster-label {
+  color: var(--primary);
+}
+.ab2-parallel-cluster.ab2-clickable:hover {
+  background: var(--primary-dim);
+  border-color: var(--primary-glow);
 }
 
 .ab2-current .ab2-label {
@@ -4582,8 +4610,8 @@ body {
   background: #F0E5DA;
 }
 .ab2-track-done {
-  border-color: #BCD0B0;
-  background: #EDF3E8;
+  border-color: var(--primary-glow);
+  background: var(--primary-dim);
 }
 
 .ab2-track-dot {
@@ -4606,9 +4634,9 @@ body {
   background: #F2E8ED;
 }
 .ab2-tdot-done {
-  border-color: var(--success);
-  color: var(--success);
-  background: #DDE8D5;
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
 }
 
 .ab2-track-pulse {
@@ -4636,12 +4664,12 @@ body {
   color: var(--text-primary);
 }
 .ab2-track-done .ab2-track-label {
-  color: var(--success);
+  color: var(--primary);
 }
 
 .ab2-track-check {
   font-size: 9px;
-  color: var(--success);
+  color: var(--primary);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -4810,6 +4838,19 @@ body {
 }
 .sim-fb-gallery img { width: 100%; height: 100%; object-fit: contain; }
 .sim-fb-placeholder { font-size: 64px; opacity: 0.3; }
+.sim-fb-gallery-nav {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(0,0,0,0.6); border-radius: 16px; padding: 4px 10px;
+}
+.sim-fb-gallery-btn {
+  background: none; border: none; color: #fff; cursor: pointer; padding: 2px;
+  opacity: 0.8; transition: opacity 0.2s;
+}
+.sim-fb-gallery-btn:hover { opacity: 1; }
+.sim-fb-gallery-btn:disabled { opacity: 0.3; cursor: default; }
+.sim-fb-gallery-count { font-size: 11px; color: #fff; font-weight: 600; }
+.sim-fb-gallery { position: relative; }
 .sim-fb-info { flex: 1; padding: 16px; overflow-y: auto; }
 .sim-fb-price { font-size: 24px; font-weight: 700; color: #1c1e21; }
 .sim-fb-title { font-size: 17px; font-weight: 600; color: #1c1e21; margin: 4px 0 8px; }
@@ -4855,6 +4896,15 @@ body {
   background: rgba(0,0,0,0.6); color: #fff; padding: 4px 10px;
   border-radius: 14px; font-size: 11px; display: flex; align-items: center; gap: 4px;
 }
+.sim-mercari-gallery-dots {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px;
+}
+.sim-mercari-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.5);
+  cursor: pointer; transition: all 0.2s;
+}
+.sim-mercari-dot.active { background: #fff; transform: scale(1.2); }
 .sim-mercari-info { max-width: 500px; margin: 0 auto; }
 .sim-mercari-title { font-size: 16px; font-weight: 600; color: #333; margin: 0 0 4px; }
 .sim-mercari-price { font-size: 22px; font-weight: 700; color: #333; margin-bottom: 4px; }

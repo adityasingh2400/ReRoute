@@ -62,7 +62,7 @@ function SkeletonCard() {
 function ListingImage({ src, alt, platformColor }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const hasUrl = src && src.startsWith('http');
+  const hasUrl = src && (src.startsWith('http') || src.startsWith('/'));
 
   if (!hasUrl || failed) {
     return (
@@ -81,7 +81,7 @@ function ListingImage({ src, alt, platformColor }) {
         loading="lazy"
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
-        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.4s ease' }}
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.5s ease' }}
       />
     </div>
   );
@@ -94,9 +94,9 @@ function ResaleCard({ comp, index, isBest }) {
   return (
     <motion.div
       className={`sw-card ${isBest ? 'sw-card-best' : ''}`}
-      initial={{ opacity: 0, x: 60, scale: 0.92 }}
+      initial={{ opacity: 0, x: 80, scale: 0.88 }}
       animate={{ opacity: 1, x: 0, scale: isBest ? 1.03 : 1 }}
-      transition={{ delay: index * 0.07, type: 'spring', stiffness: 160, damping: 18 }}
+      transition={{ delay: index * 0.25, type: 'spring', stiffness: 120, damping: 16 }}
     >
       <ListingImage src={comp.image_url} alt={comp.title} platformColor={platformColor} />
       <div className="sw-card-badges">

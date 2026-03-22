@@ -585,7 +585,7 @@ async def run_pipeline(job_id: str) -> None:
                     "progress": 0.05 + 0.25 * (i + 1) / len(fps),
                     "frame_paths": frame_urls,
                 })
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.30)
 
         async def _on_transcript_done(t):
             await asyncio.sleep(0.4)
@@ -648,6 +648,9 @@ async def run_pipeline(job_id: str) -> None:
             "item_count": len(items),
         })
         print(f"[PIPELINE] ✓ All {len(items)} items graded")
+
+        # Pause so viewers can scroll and appreciate the item cards before advancing
+        await asyncio.sleep(3.0)
 
         if not items:
             print(f"[PIPELINE] No items detected, completing job")
@@ -857,8 +860,8 @@ async def run_pipeline(job_id: str) -> None:
                 sources_done += 1
                 elapsed = _time.time() - item_t
 
-                # Minimum 1.2s between source reveals for demo pacing
-                source_target = sources_done * 1.2
+                # Minimum 2.5s between source reveals for demo pacing
+                source_target = sources_done * 2.5
                 if elapsed < source_target:
                     await asyncio.sleep(source_target - elapsed)
                     elapsed = _time.time() - item_t
@@ -879,7 +882,7 @@ async def run_pipeline(job_id: str) -> None:
                             "total_so_far": len(all_comps) - len(comps) + ci + 1,
                         })
                         if ci < len(comps) - 1:
-                            await asyncio.sleep(0.3)
+                            await asyncio.sleep(0.6)
 
                     platforms_found = list({c.platform for c in comps})
                     await emit_agent_event(job_id, "agent_progress", {
