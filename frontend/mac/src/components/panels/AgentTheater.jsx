@@ -64,7 +64,7 @@ export default function AgentTheater({
   }, [items, decisions, listings, threads]);
 
   function renderModule() {
-    const props = { items, bids, decisions, listings, threads, events };
+    const props = { job, items, bids, decisions, listings, threads, events };
     switch (activeTab) {
       case 'condition': return <ConditionFusion {...props} />;
       case 'market': return <MarketSweep {...props} />;
