@@ -45,11 +45,14 @@ export default function App() {
     if (id) setJobId(id);
   }, [uploadAndStart]);
 
-  const handleExecuteItem = useCallback((itemId) => {
+  const handleExecuteItem = useCallback((itemId, platforms) => {
     const item = items.find(i => i.item_id === itemId);
     const listing = listings[itemId];
-    if (item) setExecAnim({ item, listing });
-  }, [items, listings]);
+    if (item) {
+      setExecAnim({ item, listing, platforms });
+      executeItem(itemId, platforms);
+    }
+  }, [items, listings, executeItem]);
 
   const handleAnimComplete = useCallback(() => {
     setSimModal(execAnim);

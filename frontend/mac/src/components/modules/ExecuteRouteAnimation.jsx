@@ -80,8 +80,8 @@ export default function ExecuteRouteAnimation({ onComplete }) {
       >
         <defs>
           <linearGradient id="exec-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#a855f7" />
+            <stop offset="0%" stopColor="#7A1B2D" />
+            <stop offset="100%" stopColor="#9A3040" />
           </linearGradient>
         </defs>
 
@@ -159,7 +159,7 @@ export default function ExecuteRouteAnimation({ onComplete }) {
         />
         <motion.circle
           cx={cx} cy={cy} r="26"
-          fill="none" stroke="rgba(99,102,241,0.5)" strokeWidth="2"
+          fill="none" stroke="rgba(122,27,45,0.5)" strokeWidth="2"
           initial={{ scale: 1, opacity: 0.8 }}
           animate={{ scale: [1, 3.5], opacity: [0.7, 0] }}
           transition={{ duration: 0.9, delay: 0.1 }}
