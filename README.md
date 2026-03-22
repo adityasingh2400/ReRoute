@@ -1,39 +1,55 @@
 # ReRoute
 
-**Record once. We handle the rest.**
+**Film it. Sell it.**
 
-ReRoute turns a single guided video of unused items into money. You record one video while talking through what each item is, its condition, and any defects. ReRoute uses the visuals and speech from that video to identify each item, infer specs, understand defects, compare every meaningful route, choose the best one, and execute it.
+Record one video of your unused stuff. Nine AI agents identify every item, compete across five sale routes, and execute the winning strategy across marketplaces — automatically. You do nothing. Nothing goes to waste.
 
-## Core Routes
+---
 
-| Route | Description |
-|-------|-------------|
-| **Return** | Item is new/open-box — return it |
-| **Trade-in** | Guaranteed payout from a provider |
-| **Sell as-is** | List on marketplaces at current condition |
-| **Repair then sell** | Fix a defect to unlock more value |
-| **Bundle then sell** | Combine related items for higher total |
+## How It Works
+
+You record a single video on your phone, talking through your items naturally — what they are, their condition, any defects. ReRoute takes it from there.
+
+1. **Intake** — Video uploads from your phone to the command center
+2. **Condition Fusion** — Gemini 3.1 Pro watches the video and reads the transcript simultaneously, extracting structured item cards with specs, defects, and category labels
+3. **Route Competition** — Five specialized agents evaluate every item concurrently, each proposing a bid with estimated value, confidence, effort, and speed
+4. **Route Decision** — A decider agent scores all bids (45% value, 25% confidence, 15% effort, 15% speed) and picks the winner. Low-confidence bids trigger automatic delegation back to the originating agent for re-evaluation
+5. **Asset Optimization** — OpenCV scores frame sharpness, Pillow auto-crops and normalizes exposure, rembg removes backgrounds. Up to 8 listing-ready images per item
+6. **Execution** — Listings go live across eBay, Mercari, Facebook Marketplace, and Depop via platform adapters
+7. **Unified Inbox** — All buyer conversations across all platforms, one place
+
+## The Five Routes
+
+Every item gets evaluated against all five. The best route wins.
+
+| Route | What It Does | Example |
+|-------|-------------|---------|
+| **Return** | Detects new/open-box items still within the return window | Unopened AirPods → full refund |
+| **Trade-In** | Gets guaranteed payouts from Apple, Best Buy, Decluttr, Gazelle | iPhone 13 with cracked screen → $180 Apple Trade-In |
+| **Sell As-Is** | Searches eBay sold comps, estimates fair market value, accounts for condition and fees | Used PS5 controller → $42 on eBay |
+| **Repair Then Sell** | Finds replacement parts on Amazon, calculates if repair cost < extra sale value | Replace $12 screen protector → unlock $60 more value |
+| **Bundle Then Sell** | Identifies items worth more together than apart | Camera + lens + bag → $340 as kit vs $280 individual |
 
 ## Architecture
 
 ```
-Phone (capture) ──video──► Mac (command center)
+Phone (capture) ──video──► Mac Dashboard (command center)
                               │
                     ┌─────────┼─────────┐
                     ▼         ▼         ▼
-              IntakeAgent  Bureau   FastAPI
-                    │      (uAgents)  Server
+              IntakeAgent  Bureau   FastAPI + WebSocket
+                    │     (uAgents)
                     ▼
           ConditionFusionAgent ──► Gemini 3.1 Pro
                     │
-         ┌──────┬──┼──┬──────┬──────┐
-         ▼      ▼  ▼  ▼      ▼      ▼
-      Return  Trade MarketResale  Repair  Bundle
-      Agent   Agent   Agent      Agent   Agent
-         │      │     │          │       │
-         └──────┴─────┴──────────┴───────┘
+         ┌──────┬───┼───┬───────┬───────┐
+         ▼      ▼   ▼   ▼       ▼       ▼        ← concurrent evaluation
+      Return  Trade  Resale  Repair   Bundle
+      Agent   Agent  Agent   Agent    Agent
+         │      │     │       │        │
+         └──────┴─────┴───────┴────────┘
                        │
-                RouteDeciderAgent
+                RouteDeciderAgent ──► delegation loop (low confidence)
                        │
               ┌────────┼────────┐
               ▼        ▼        ▼
@@ -42,60 +58,68 @@ Phone (capture) ──video──► Mac (command center)
                        │
               ┌────────┼────────┐
               ▼        ▼        ▼
-            eBay    Mercari   (FB/Depop)
+            eBay    Mercari   FB / Depop
 ```
 
-### Agents (reasoning + route competition)
-- **IntakeAgent** — creates jobs, triggers extraction
-- **ConditionFusionAgent** — fuses transcript + vision into item cards
-- **ReturnAgent** — evaluates return viability
-- **TradeInAgent** — compares guaranteed payout options
-- **MarketplaceResaleAgent** — searches eBay comps, estimates sale value
-- **RepairROIAdvisorAgent** — finds Amazon parts, calculates repair ROI
-- **BundleOpportunityAgent** — identifies items worth more together
-- **RouteDeciderAgent** — picks the best route per item
-- **ConciergeAgent** — ASI:One-compatible public-facing agent (chat protocol)
+All nine agents run concurrently inside a single Fetch.ai **Bureau**. The five route agents evaluate items in parallel — not sequentially. The RouteDeciderAgent waits for all bids to arrive before scoring.
 
-### Systems (support + execution)
-- **TranscriptAndFrameExtractionSystem** — ffmpeg frames + Gemini transcript
-- **ListingAssetOptimizationSystem** — OpenCV scoring, Pillow crop, rembg
-- **ExecutionSystem** — multi-platform posting via adapters
-- **UnifiedInboxSystem** — cross-platform buyer management
-- **RouteCloserSystem** — shuts down losing routes when one wins
+## Agents on Agentverse
 
-## Fetch.ai Integration
+ReRoute is built on [Fetch.ai's uAgents framework](https://fetch.ai/docs/guides/agents/getting-started-with-uagents). Every agent runs on the **testnet** with its own wallet address and communicates via typed Protocol messages.
 
-| Requirement | Implementation |
-|-------------|----------------|
-| uAgents | All 9 agents built with `uagents.Agent` |
-| Bureau | All agents managed in a single `Bureau` |
-| Mailbox | ConciergeAgent has `mailbox=True` |
-| Agentverse | Concierge registered via Inspector link |
-| ASI:One | Concierge uses `chat_protocol_spec` |
-| Delegation | Low-confidence bids trigger `DelegationRequest` |
-| Protocols | Typed message models for all inter-agent communication |
+| Component | How We Use It |
+|-----------|---------------|
+| **uAgents** | All 9 agents built with `uagents.Agent`, each with typed Protocols |
+| **Bureau** | Single Bureau manages the full agent cluster, concurrent execution |
+| **Mailbox** | ConciergeAgent registers with `mailbox=True` for Agentverse discovery |
+| **Agentverse** | Concierge is publicly registered — anyone can find and message it |
+| **ASI:One** | ConciergeAgent implements `chat_protocol_spec` for natural language interaction |
+| **Delegation** | Low-confidence bids trigger `DelegationRequest` messages back to route agents |
+| **Protocols** | Every inter-agent message is a typed Pydantic model — `RouteBidRequest`, `RouteDecisionResponse`, `DelegationRequest`, etc. |
+
+The ConciergeAgent is the public face of the system. It connects to ASI:One (asi1-mini) with full context about processed items, route decisions, and bid histories — so users can ask "why did you choose trade-in for my iPhone?" and get a grounded answer.
+
+## Technologies
+
+| Layer | Technology | What It Does in ReRoute |
+|-------|-----------|------------------------|
+| **AI / Vision** | Gemini 3.1 Pro | Watches the full video + reads the transcript to extract item cards with specs, defects, and condition labels |
+| **Agent Framework** | Fetch.ai uAgents + Bureau | 9 concurrent agents with typed message protocols, testnet wallets, and Agentverse registration |
+| **Agent Chat** | ASI:One (asi1-mini) | Powers the ConciergeAgent's natural language interface via `chat_protocol_spec` |
+| **Backend** | Python 3.10 + FastAPI + uvicorn | REST API + WebSocket for real-time job status streaming to the frontend |
+| **Frontend (Dashboard)** | React 19 + Vite + Framer Motion | Animated command center with route ladders, comp galleries, and live agent status |
+| **Frontend (Capture)** | Vanilla HTML + WebSocket | Minimal phone interface — tap to record, swipe to send |
+| **Video Processing** | ffmpeg | Frame extraction from uploaded videos |
+| **Image Intelligence** | OpenCV + NumPy | Sharpness scoring (Laplacian variance), duplicate frame rejection, quality ranking |
+| **Image Optimization** | Pillow (PIL) | Auto-crop, exposure normalization, enhancement filters |
+| **Background Removal** | rembg | Clean product cutouts for marketplace listings |
+| **Marketplace APIs** | eBay Browse + Sell APIs | Comp search (sold listings), live listing creation, order management |
+| **Parts Discovery** | Amazon PA-API | Finds replacement parts for repair-then-sell ROI calculation |
+| **Trade-In Quotes** | Apple Trade-In API | Guaranteed device payout quotes |
+| **Data Models** | Pydantic v2 | Typed models for items, bids, decisions, listings — shared across agents and API |
+| **Configuration** | pydantic-settings | Environment-based config with `.env` support |
+| **Storage** | In-memory + JSON persistence | Fast reads during processing, durable across restarts |
 
 ## Quick Start
 
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- ffmpeg installed (`brew install ffmpeg` on macOS)
+- ffmpeg (`brew install ffmpeg` on macOS)
 
 ### Setup
 
 ```bash
-# Clone and enter
 cd ReRoute
 
-# Run automated setup
+# Automated setup
 bash scripts/setup.sh
 
-# Edit environment variables
-nano .env
-# Add at minimum: GEMINI_API_KEY
+# Configure API keys
+cp .env.example .env
+nano .env   # Add at minimum: GEMINI_API_KEY
 
-# Start everything
+# Start everything (Bureau + API server)
 python run.py
 ```
 
@@ -103,17 +127,17 @@ python run.py
 
 | Surface | URL |
 |---------|-----|
-| Mac Dashboard | http://localhost:8080 |
-| Phone Capture | http://localhost:8080/phone/ |
-| API Docs | http://localhost:8080/docs |
+| Mac Dashboard | `http://localhost:8080` |
+| Phone Capture | `http://localhost:8080/phone/` |
+| API Docs | `http://localhost:8080/docs` |
 
 ### Demo Mode
 
-Set `DEMO_MODE=true` in `.env` for realistic mock data when API keys aren't configured.
+Set `DEMO_MODE=true` in `.env` to run with realistic mock data — no API keys needed.
 
 ## Environment Variables
 
-See `.env.example` for a full template. Key variables:
+See `.env.example` for a full template.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -130,52 +154,32 @@ See `.env.example` for a full template. Key variables:
 | `API_PORT` | No | API server port (default `8080`) |
 | `BUREAU_PORT` | No | uAgents Bureau port (default `8000`) |
 | `DEMO_MODE` | No | `true` for mock data (default) |
-| `ENABLE_FACEBOOK_ADAPTER` | No | Enable Facebook Marketplace adapter |
-| `ENABLE_DEPOP_ADAPTER` | No | Enable Depop adapter |
 
-Each agent also requires a unique seed phrase (`*_AGENT_SEED` in `.env.example`).
+Each agent requires a unique seed phrase — see `*_AGENT_SEED` entries in `.env.example`.
 
 ## Project Structure
 
 ```
 ReRoute/
-├── run.py                    # Entry point (Bureau + API server)
+├── run.py                    # Entry point — starts Bureau + API server
 ├── backend/
-│   ├── config.py             # Settings via pydantic-settings
+│   ├── config.py             # Settings (pydantic-settings)
 │   ├── server.py             # FastAPI + WebSocket
-│   ├── models/               # Pydantic data models
-│   ├── protocols/            # uAgents message types
-│   ├── agents/               # 9 uAgents + Bureau
-│   ├── systems/              # 5 execution systems
-│   ├── adapters/             # Platform adapters (eBay, Mercari, etc.)
+│   ├── models/               # Pydantic data models (items, bids, decisions, listings)
+│   ├── protocols/            # uAgents message types (typed inter-agent communication)
+│   ├── agents/               # 9 uAgents + Bureau orchestration
+│   ├── systems/              # Transcript extraction, asset optimization, execution, inbox, route closer
+│   ├── adapters/             # Platform adapters (eBay, Mercari, Facebook, Depop)
 │   ├── services/             # External API clients (Gemini, eBay, Amazon)
-│   └── storage/              # In-memory store with persistence
+│   └── storage/              # In-memory store with JSON persistence
 ├── frontend/
-│   ├── phone/                # Minimal capture interface (vanilla HTML)
-│   └── mac/                  # Command center dashboard (React + Vite)
+│   ├── phone/                # Capture interface (vanilla HTML + WebSocket)
+│   └── mac/                  # Command center (React 19 + Vite + Framer Motion)
 ├── data/                     # Runtime data (uploads, frames, jobs)
 └── scripts/
-    └── setup.sh              # Automated setup
+    └── setup.sh              # Automated environment setup
 ```
 
-## Demo Presentation Flow
+## Built for the Fetch.ai AI Agent Hackathon
 
-1. **Phone** — Tap Start Capture, record items while speaking, swipe up to send
-2. **Mac** — Video arrives, processing ring appears
-3. **Condition Fusion** — Item cards emerge from the video
-4. **Market Sweep** — Horizontal comp cards slide in with match scores
-5. **Repair Sweep** — Amazon parts + "NET GAIN UNLOCKED" moment
-6. **Best Route** — Route ladder locks in the winner
-7. **Asset Studio** — Raw vs optimized listing images
-8. **Multi-Post Engine** — Launch sequence to eBay (live publish)
-9. **Unified Inbox** — Show cross-platform buyer management
-10. **Agentverse** — Show agent profile screenshot
-11. **ASI:One** — Chat with ConciergeAgent live
-
-### Presentation Mode
-
-Toggle "Presentation Mode" in the Mac dashboard for:
-- Larger typography
-- Fewer controls
-- Optimized for across-the-table readability
-
+ReRoute demonstrates what becomes possible when autonomous agents collaborate on a real-world problem. Nine agents. Five competing routes. One video. Zero effort.
