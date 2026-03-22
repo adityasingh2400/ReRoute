@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Cpu, Eye, Search, RefreshCw, Package, Wrench, Layers,
+  Cpu, Eye, Search, RefreshCw, Package, Wrench,
   Trophy, MessageSquare, Loader2, DollarSign, XCircle,
   CheckCircle2, FileText, AlertTriangle, Image, Zap,
-  ShoppingBag, RotateCcw, Clock,
+  ShoppingBag, RotateCcw, Clock, TrendingUp,
 } from 'lucide-react';
 import Badge from '../shared/Badge';
 import AnimatedValue from '../shared/AnimatedValue';
@@ -13,29 +13,37 @@ import AnimatedValue from '../shared/AnimatedValue';
    Stages + Agents
    ──────────────────────────────────────────────────────────────── */
 const STAGES = [
-  { id: 1, label: 'Extraction', desc: 'Pulling frames & transcript from video',
-    agents: [{ id: 'intake', name: 'Intake', icon: Cpu }] },
-  { id: 2, label: 'Analysis', desc: 'AI grades every item\'s condition',
-    agents: [{ id: 'condition_fusion', name: 'ConditionFusion', icon: Eye }] },
-  { id: 3, label: 'Route Bidding', desc: '5 agents racing to find the best route',
+  { id: 1, label: 'Processing', desc: 'Extracting frames, transcribing, and analyzing items concurrently',
+    agents: [{ id: 'intake', name: 'Intake', icon: Cpu }, { id: 'condition_fusion', name: 'ConditionFusion', icon: Eye }] },
+  { id: 2, label: 'Route Bidding', desc: 'Each item has its own fleet of agents racing in parallel',
     agents: [
       { id: 'marketplace_resale', name: 'Resale', icon: Search },
       { id: 'trade_in', name: 'Trade-In', icon: RefreshCw },
       { id: 'return', name: 'Return', icon: Package },
       { id: 'repair_roi', name: 'Repair', icon: Wrench },
-      { id: 'bundle_opportunity', name: 'Bundle', icon: Layers },
     ] },
-  { id: 4, label: 'Decision', desc: 'Picking the winning route for each item',
+  { id: 3, label: 'Decision', desc: 'Picking the winning route for each item',
     agents: [{ id: 'route_decider', name: 'RouteDecider', icon: Trophy }] },
 ];
 
+const AGENT_META = {
+  marketplace_resale: { name: 'Resale', icon: Search, color: 'var(--primary)' },
+  trade_in: { name: 'Trade-In', icon: RefreshCw, color: '#9A7020' },
+  return: { name: 'Return', icon: Package, color: '#6B4A3A' },
+  repair_roi: { name: 'Repair', icon: Wrench, color: '#9A2020' },
+};
+
 const ROUTE_LABELS = {
   sell_as_is: 'Sell As-Is', trade_in: 'Trade-In', repair_then_sell: 'Repair & Sell',
-  bundle_then_sell: 'Bundle', return: 'Return', no_action: 'No Action',
+  return: 'Return', no_action: 'No Action',
 };
 const ROUTE_ICONS = {
   sell_as_is: ShoppingBag, trade_in: RefreshCw, repair_then_sell: Wrench,
-  bundle_then_sell: Layers, return: RotateCcw, no_action: XCircle,
+  return: RotateCcw, no_action: XCircle,
+};
+const ROUTE_MAP = {
+  marketplace_resale: 'sell_as_is', trade_in: 'trade_in',
+  repair_roi: 'repair_then_sell', return: 'return',
 };
 
 function getStatus(s) {
@@ -74,7 +82,7 @@ function ProgressBar({ status, progress, doneCount, totalCount }) {
   );
 }
 
-/* ── Agent Card — compact header with live message ────────────── */
+/* ── Agent Card — for stages 1, 2, 4 (agent-centric) ─────────── */
 function AgentCard({ agent, state, perItem, items, index, children }) {
   const status = getStatus(state);
   const message = state?.message || '';
@@ -103,7 +111,6 @@ function AgentCard({ agent, state, perItem, items, index, children }) {
       {(status === 'thinking' || status === 'done') && (
         <ProgressBar status={status} progress={state?.progress} doneCount={doneCount} totalCount={totalCount} />
       )}
-      {/* Per-item breakdown for multi-item */}
       {items && items.length > 1 && itemEntries.length > 0 && (
         <div className="mc-item-list">
           {items.map((item) => {
@@ -121,121 +128,341 @@ function AgentCard({ agent, state, perItem, items, index, children }) {
           })}
         </div>
       )}
-      {/* Rich embedded content from parent */}
       {children}
     </motion.div>
   );
 }
 
 /* ════════════════════════════════════════════════════════════════
-   STAGE-SPECIFIC EMBEDDED CONTENT
+   STAGE 3: ITEM-CENTRIC BIDDING DISPLAY
+   Each item gets its own card with agents orbiting around it
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Stage 1: Extraction — show transcript + frame count ─────── */
-function ExtractionContent({ job, agents }) {
-  const state = agents.intake;
+/* ── Orbital positions for agent satellites around each planet ── */
+const ORBIT_POSITIONS = [
+  { angle: -45, radius: 1, label: 'top-left' },
+  { angle: 45, radius: 1, label: 'top-right' },
+  { angle: 135, radius: 1, label: 'bottom-right' },
+  { angle: -135, radius: 1, label: 'bottom-left' },
+];
+
+function FloatingAgentSatellite({ agentId, state, bid, orbitIndex, isExpanded, onToggle }) {
+  const meta = AGENT_META[agentId];
+  if (!meta) return null;
   const status = getStatus(state);
-  const transcript = job?.transcript_text;
-  const frameCount = state?.frame_count || job?.frame_paths?.length;
+  const Icon = meta.icon;
+  const hasBid = bid && bid.viable;
+  const pos = ORBIT_POSITIONS[orbitIndex % ORBIT_POSITIONS.length];
 
   return (
-    <div className="mc-embedded">
-      {frameCount > 0 && (
-        <div className="mc-stat-row">
-          <Image size={14} /> <span>{frameCount} frames extracted</span>
-        </div>
+    <motion.div
+      className={`sat-agent sat-${status} sat-pos-${pos.label}`}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        ...(status === 'thinking' ? {} : {}),
+      }}
+      transition={{ delay: orbitIndex * 0.12, type: 'spring', stiffness: 250, damping: 20 }}
+      onClick={onToggle}
+      style={{ '--agent-accent': meta.color }}
+    >
+      <div className={`sat-icon-orb sat-orb-${status}`}>
+        {status === 'thinking' && <div className="sat-ripple" />}
+        {status === 'thinking' && <div className="sat-ripple sat-ripple-2" />}
+        <Icon size={16} />
+      </div>
+      <span className="sat-name">{meta.name}</span>
+      {status === 'done' && hasBid && (
+        <motion.span className="sat-value"
+          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+          <DollarSign size={10} />{bid.estimated_value?.toFixed(0)}
+        </motion.span>
       )}
-      {transcript && status === 'done' && (
-        <div className="mc-transcript">
-          <div className="mc-transcript-header"><FileText size={13} /> Transcript</div>
-          <p className="mc-transcript-text">{transcript}</p>
-        </div>
+      {status === 'done' && !hasBid && <span className="sat-na">N/A</span>}
+      {status === 'thinking' && (
+        <span className="sat-working"><Loader2 size={10} className="mc-spinner" /></span>
       )}
-    </div>
+      {status === 'done' && hasBid && bid.confidence != null && (
+        <span className="sat-conf">{(bid.confidence * 100).toFixed(0)}%</span>
+      )}
+      {status === 'error' && <span className="sat-err">!</span>}
+    </motion.div>
   );
 }
 
-/* ── Stage 2: Analysis — show items as they're graded ────────── */
-function AnalysisContent({ items }) {
-  if (!items || items.length === 0) return null;
+function FloatingCompsCloud({ comps }) {
+  if (!comps || comps.length === 0) return null;
   return (
-    <div className="mc-embedded">
-      <div className="mc-items-grid">
-        {items.map((item, i) => {
-          const condition = item.visible_defects?.length || item.spoken_defects?.length
-            ? (item.visible_defects?.some?.((d) => d.severity === 'major') ? 'Fair' : 'Good')
-            : 'Like New';
-          return (
-            <motion.div key={item.item_id} className="mc-item-card"
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.12 }}>
-              {item.hero_frame_paths?.[0] && (
-                <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="mc-item-thumb" />
-              )}
-              <div className="mc-item-info">
-                <div className="mc-item-title">{item.name_guess}</div>
-                <div className="mc-item-tags">
-                  <Badge variant={condition === 'Like New' ? 'success' : 'warning'}>{condition}</Badge>
-                  <Badge variant="primary">{Math.round((item.confidence || 0) * 100)}%</Badge>
-                </div>
-                {item.visible_defects?.length > 0 && (
-                  <div className="mc-item-defects">
-                    <AlertTriangle size={10} /> {item.visible_defects.map((d) => d.description || d).join(', ')}
-                  </div>
-                )}
+    <motion.div className="flt-comps-cloud"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}>
+      <div className="flt-comps-label">
+        <Search size={10} /> {comps.length} listings found
+      </div>
+      <div className="flt-comps-rail">
+        {comps.slice(0, 6).map((c, ci) => (
+          <motion.div key={ci} className="flt-comp-card"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: ci * 0.06, type: 'spring', stiffness: 280, damping: 22 }}>
+            <div className={`flt-comp-plat plat-${(c.platform || 'other').toLowerCase()}`}>
+              {(c.platform || 'other').charAt(0).toUpperCase() + (c.platform || 'other').slice(1)}
+            </div>
+            {c.image_url ? (
+              <div className="flt-comp-img">
+                <img src={c.image_url} alt="" referrerPolicy="no-referrer" loading="lazy"
+                  onError={(e) => { e.target.onerror = null; e.target.parentElement.classList.add('ibc-lc-noimg'); e.target.replaceWith(Object.assign(document.createElement('span'), { className: 'ibc-lc-fallback-icon' })); }} />
               </div>
-            </motion.div>
+            ) : (
+              <div className="flt-comp-img ibc-lc-noimg"><ShoppingBag size={14} /></div>
+            )}
+            <div className="flt-comp-price">${c.price?.toFixed(0)}</div>
+            <div className="flt-comp-title">{c.title}</div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function FloatingTradeInWidget({ allBids }) {
+  const tiBid = allBids.find((b) => b.route_type === 'trade_in' && b.trade_in_quotes?.length > 0);
+  if (!tiBid) return null;
+  const quotes = [...tiBid.trade_in_quotes].sort((a, b) => b.payout - a.payout);
+  const best = quotes[0];
+  const others = quotes.slice(1);
+  const isApple = best.provider === 'Apple Trade In';
+
+  return (
+    <motion.div className="flt-tradein"
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
+      <div className="ati-header">
+        {isApple && <span className="ati-apple-logo"></span>}
+        <span className="ati-title">{isApple ? 'Trade In' : best.provider}</span>
+        {best.confidence >= 0.9 && <span className="ati-live-dot" />}
+      </div>
+      <div className="ati-divider" />
+      <div className="ati-payout">${best.payout?.toFixed(0)}</div>
+      <div className="ati-detail">
+        <span>{best.speed}</span>
+        <span className="ati-sep">·</span>
+        <span>{best.effort} effort</span>
+      </div>
+      {others.length > 0 && (
+        <div className="ati-others">
+          {others.map((q, i) => (
+            <div key={i} className="ati-alt-row">
+              <span className="ati-alt-name">{q.provider}</span>
+              <span className="ati-alt-val">${q.payout?.toFixed(0)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3Plan }) {
+  const planAgents = stage3Plan?.plan?.[item.item_id]?.agents || Object.keys(AGENT_META);
+  const allBids = itemBids || [];
+  const [expanded, setExpanded] = useState(null);
+
+  const activeCount = planAgents.filter((a) => getStatus(agentStates?.[a]) === 'thinking').length;
+  const doneCount = planAgents.filter((a) => getStatus(agentStates?.[a]) === 'done').length;
+  const allDone = doneCount === planAgents.length && planAgents.length > 0;
+  const anyThinking = activeCount > 0;
+
+  const streamingComps = useMemo(() => {
+    const resaleBid = allBids.find((b) => b.route_type === 'sell_as_is');
+    return resaleBid?.comparable_listings || [];
+  }, [allBids]);
+
+  const bestBid = useMemo(() => {
+    const viable = allBids.filter((b) => b.viable);
+    if (viable.length === 0) return null;
+    return viable.reduce((a, b) => (a.estimated_value > b.estimated_value ? a : b));
+  }, [allBids]);
+
+  const condition = item.visible_defects?.length || item.spoken_defects?.length
+    ? (item.visible_defects?.some?.((d) => d.severity === 'major') ? 'Fair' : 'Good')
+    : 'Like New';
+
+  return (
+    <motion.div
+      className={`planet-system ${anyThinking ? 'planet-active' : ''} ${allDone ? 'planet-done' : ''}`}
+      initial={{ opacity: 0, scale: 0.7 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: itemIndex * 0.15, type: 'spring', stiffness: 180, damping: 20 }}
+    >
+      {/* Connection lines from planet to satellites */}
+      <svg className="planet-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {planAgents.map((_, i) => {
+          const pos = ORBIT_POSITIONS[i % ORBIT_POSITIONS.length];
+          const cx = 50, cy = 50;
+          const endX = cx + Math.cos(pos.angle * Math.PI / 180) * 40;
+          const endY = cy + Math.sin(pos.angle * Math.PI / 180) * 40;
+          return (
+            <line key={i} x1={cx} y1={cy} x2={endX} y2={endY}
+              className={`planet-line planet-line-${getStatus(agentStates?.[planAgents[i]])}`} />
           );
         })}
+      </svg>
+
+      {/* The Planet — the item itself */}
+      <motion.div className={`planet-core ${anyThinking ? 'planet-core-active' : ''} ${allDone ? 'planet-core-done' : ''}`}
+        animate={anyThinking ? { boxShadow: ['0 0 20px #3D1818', '0 0 40px #5E2828', '0 0 20px #3D1818'] } : {}}
+        transition={anyThinking ? { duration: 2, repeat: Infinity } : {}}>
+        {item.hero_frame_paths?.[0] ? (
+          <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="planet-img" />
+        ) : (
+          <div className="planet-placeholder"><ShoppingBag size={24} /></div>
+        )}
+        <div className="planet-glow" />
+      </motion.div>
+
+      {/* Item label below the planet */}
+      <div className="planet-label">
+        <span className="planet-name">{item.name_guess}</span>
+        <div className="planet-tags">
+          <Badge variant={condition === 'Like New' ? 'success' : 'warning'}>{condition}</Badge>
+          {allDone && bestBid && (
+            <motion.span className="planet-best"
+              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+              <TrendingUp size={11} /> ${bestBid.estimated_value?.toFixed(0)}
+            </motion.span>
+          )}
+          {anyThinking && (
+            <span className="planet-scanning">
+              <Loader2 size={10} className="mc-spinner" /> {activeCount} active
+            </span>
+          )}
+        </div>
+        <div className="planet-progress-ring">
+          <svg viewBox="0 0 36 36" className="planet-ring-svg">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#2D1212" strokeWidth="2" />
+            <motion.circle cx="18" cy="18" r="15.5" fill="none"
+              stroke={allDone ? 'var(--success)' : 'var(--primary)'}
+              strokeWidth="2" strokeLinecap="round"
+              strokeDasharray="97.4"
+              initial={{ strokeDashoffset: 97.4 }}
+              animate={{ strokeDashoffset: 97.4 - (doneCount / Math.max(planAgents.length, 1)) * 97.4 }}
+              transition={{ duration: 0.5 }}
+              transform="rotate(-90 18 18)" />
+          </svg>
+          <span className="planet-ring-text">{doneCount}/{planAgents.length}</span>
+        </div>
       </div>
-    </div>
-  );
-}
 
-/* ── Stage 3: Route Bidding — show bid results per agent ─────── */
-function BiddingCardContent({ agentId, bids, items }) {
-  const routeMap = { marketplace_resale: 'sell_as_is', trade_in: 'trade_in', repair_roi: 'repair_then_sell', return: 'return', bundle_opportunity: 'bundle_then_sell' };
-  const routeType = routeMap[agentId];
-  if (!routeType || !bids) return null;
-
-  const agentBids = Object.values(bids).flat().filter((b) => b.route_type === routeType && b.viable);
-  if (agentBids.length === 0) return null;
-
-  return (
-    <div className="mc-bid-results">
-      {agentBids.map((bid, i) => {
-        const itemName = items?.find((it) => it.item_id === bid.item_id)?.name_guess || 'Item';
+      {/* Orbiting agent satellites */}
+      {planAgents.map((agentId, i) => {
+        const routeType = ROUTE_MAP[agentId];
+        const bid = allBids.find((b) => b.route_type === routeType);
         return (
-          <div key={i} className="mc-bid-row">
-            <span className="mc-bid-item">{itemName.split(' ').slice(0, 3).join(' ')}</span>
-            <span className="mc-bid-value"><DollarSign size={11} />{bid.estimated_value?.toFixed(0)}</span>
-            {bid.confidence != null && <span className="mc-bid-conf">{(bid.confidence * 100).toFixed(0)}%</span>}
-          </div>
+          <FloatingAgentSatellite
+            key={agentId}
+            agentId={agentId}
+            state={agentStates?.[agentId]}
+            bid={bid}
+            orbitIndex={i}
+            isExpanded={expanded === agentId}
+            onToggle={() => setExpanded(expanded === agentId ? null : agentId)}
+          />
         );
       })}
-      {/* Comparables for marketplace */}
-      {agentId === 'marketplace_resale' && agentBids[0]?.comparable_listings?.length > 0 && (
-        <div className="mc-comps-row">
-          {agentBids[0].comparable_listings.slice(0, 4).map((c, ci) => (
-            <span key={ci} className="mc-comp-chip">
-              <Badge platform={c.platform || 'other'} /> ${c.price?.toFixed(0)}
-            </span>
-          ))}
+
+      {/* Floating comparables cloud — anchored below the system */}
+      <AnimatePresence>
+        {streamingComps.length > 0 && (
+          <FloatingCompsCloud comps={streamingComps} />
+        )}
+      </AnimatePresence>
+
+      {/* Floating trade-in widget */}
+      <AnimatePresence>
+        {allBids.some((b) => b.route_type === 'trade_in' && b.trade_in_quotes?.length > 0) && (
+          <FloatingTradeInWidget allBids={allBids} />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   STAGE-SPECIFIC EMBEDDED CONTENT (1, 2, 4 unchanged)
+   ════════════════════════════════════════════════════════════════ */
+
+function ProcessingContent({ job, agents, items }) {
+  const state = agents.intake;
+  const status = getStatus(state);
+  const transcript = state?.transcript_text || job?.transcript_text;
+  const framePaths = state?.frame_paths || job?.frame_paths || [];
+
+  return (
+    <div className="mc-embedded">
+      {/* Visual filmstrip of extracted frames */}
+      {framePaths.length > 0 && (
+        <div className="ext-filmstrip">
+          <div className="ext-filmstrip-label"><Image size={12} /> {framePaths.length} frames</div>
+          <div className="ext-filmstrip-rail">
+            {framePaths.map((fp, i) => (
+              <motion.div key={i} className="ext-frame"
+                initial={{ opacity: 0, scale: 0.7, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: i * 0.04, type: 'spring', stiffness: 300, damping: 22 }}>
+                <img src={fp} alt={`Frame ${i + 1}`} />
+                <span className="ext-frame-num">{i + 1}</span>
+              </motion.div>
+            ))}
+          </div>
         </div>
       )}
-      {/* Trade-in quotes */}
-      {agentId === 'trade_in' && agentBids[0]?.trade_in_quotes?.length > 0 && (
-        <div className="mc-comps-row">
-          {agentBids[0].trade_in_quotes.slice(0, 3).map((q, qi) => (
-            <span key={qi} className="mc-comp-chip">{q.provider}: ${q.payout?.toFixed(0)}</span>
-          ))}
+      {/* Streaming transcript */}
+      {transcript && (
+        <motion.div className="ext-transcript"
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="ext-transcript-label"><FileText size={12} /> Transcript</div>
+          <p className="ext-transcript-text">{transcript}</p>
+        </motion.div>
+      )}
+      {/* Analyzed items */}
+      {items && items.length > 0 && (
+        <div className="mc-items-grid" style={{ marginTop: 12 }}>
+          {items.map((item, i) => {
+            const condition = item.visible_defects?.length || item.spoken_defects?.length
+              ? (item.visible_defects?.some?.((d) => d.severity === 'major') ? 'Fair' : 'Good')
+              : 'Like New';
+            return (
+              <motion.div key={item.item_id} className="mc-item-card"
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.12 }}>
+                {item.hero_frame_paths?.[0] && (
+                  <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="mc-item-thumb" />
+                )}
+                <div className="mc-item-info">
+                  <div className="mc-item-title">{item.name_guess}</div>
+                  <div className="mc-item-tags">
+                    <Badge variant={condition === 'Like New' ? 'success' : 'warning'}>{condition}</Badge>
+                    <Badge variant="primary">{Math.round((item.confidence || 0) * 100)}%</Badge>
+                  </div>
+                  {item.visible_defects?.length > 0 && (
+                    <div className="mc-item-defects">
+                      <AlertTriangle size={10} /> {item.visible_defects.map((d) => d.description || d).join(', ')}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-/* ── Stage 4: Decision — show the winning routes ──────────────── */
 function DecisionContent({ decisions, items, onExecuteItem }) {
   const decisionList = Object.values(decisions);
   if (decisionList.length === 0) return null;
@@ -274,19 +501,39 @@ function DecisionContent({ decisions, items, onExecuteItem }) {
 /* ════════════════════════════════════════════════════════════════
    MAIN MISSION CONTROL
    ════════════════════════════════════════════════════════════════ */
-export default function MissionControl({ agents = {}, agentsRaw = {}, items = [], decisions = {}, bids = {}, job = null, listings = {}, onExecuteItem }) {
+export default function MissionControl({
+  agents = {}, agentsRaw = {}, agentsByItem = {},
+  stage3Plan, items = [], decisions = {}, bids = {},
+  job = null, listings = {}, onExecuteItem,
+}) {
   const autoIdx = getActiveStageIndex(agents);
   const [manualIdx, setManualIdx] = useState(null);
-  const activeIdx = manualIdx ?? autoIdx;
+  const hasManuallyNavigated = useRef(false);
+  const activeIdx = hasManuallyNavigated.current ? (manualIdx ?? autoIdx) : autoIdx;
 
-  useEffect(() => {
-    if (manualIdx !== null && manualIdx !== autoIdx) {
-      const t = setTimeout(() => setManualIdx(null), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [autoIdx, manualIdx]);
+  // Once the user clicks a pill, stop auto-advancing for the rest of this job
+  const handleStageClick = (i) => {
+    hasManuallyNavigated.current = true;
+    setManualIdx(i);
+  };
 
   const stage = STAGES[activeIdx];
+
+  // Count total concurrent tasks for Stage 3 header
+  const stage3TaskCount = useMemo(() => {
+    if (!stage3Plan?.plan) return { total: 0, active: 0, done: 0 };
+    let total = 0, active = 0, done = 0;
+    for (const [itemId, plan] of Object.entries(stage3Plan.plan)) {
+      const itemAgents = agentsByItem[itemId] || {};
+      for (const agentId of plan.agents) {
+        total++;
+        const s = getStatus(itemAgents[agentId]);
+        if (s === 'thinking') active++;
+        if (s === 'done') done++;
+      }
+    }
+    return { total, active, done };
+  }, [stage3Plan, agentsByItem]);
 
   return (
     <div className="mission-control-v2">
@@ -297,7 +544,7 @@ export default function MissionControl({ agents = {}, agentsRaw = {}, items = []
           const anyThinking = s.agents.some((a) => getStatus(agents[a.id]) === 'thinking');
           return (
             <button key={s.id} className={`mc-dot ${i === activeIdx ? 'active' : ''} ${allDone ? 'done' : ''} ${anyThinking ? 'thinking' : ''}`}
-              onClick={() => setManualIdx(i)}>
+              onClick={() => handleStageClick(i)}>
               <span className="mc-dot-num">{s.id}</span>
               <span className="mc-dot-label">{s.label}</span>
             </button>
@@ -315,25 +562,54 @@ export default function MissionControl({ agents = {}, agentsRaw = {}, items = []
             <span className="mc-stage-number">Stage {stage.id}</span>
             <h3 className="mc-stage-title">{stage.label}</h3>
             <p className="mc-stage-desc">{stage.desc}</p>
+            {stage.id === 2 && stage3TaskCount.total > 0 && (
+              <div className="mc-stage3-counter">
+                <span className="mc-s3-badge">
+                  {stage3TaskCount.active > 0 ? (
+                    <><Loader2 size={11} className="mc-spinner" /> {stage3TaskCount.active} active</>
+                  ) : (
+                    <><CheckCircle2 size={11} /> {stage3TaskCount.done} done</>
+                  )}
+                </span>
+                <span className="mc-s3-total">
+                  {stage3TaskCount.done}/{stage3TaskCount.total} agent-tasks
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Agent cards */}
-          <div className={`mc-agents-row mc-agents-${stage.agents.length}`}>
-            {stage.agents.map((agent, i) => (
-              <AgentCard key={agent.id} agent={agent} state={agents[agent.id]}
-                perItem={agentsRaw[agent.id] || {}} items={items} index={i}>
-                {/* Embedded rich content per agent in Stage 3 */}
-                {stage.id === 3 && getStatus(agents[agent.id]) === 'done' && (
-                  <BiddingCardContent agentId={agent.id} bids={bids} items={items} />
-                )}
-              </AgentCard>
-            ))}
-          </div>
+          {/* Stage 2: FLOATING PLANETS layout */}
+          {stage.id === 2 ? (
+            <div className="planets-field">
+              {items.map((item, i) => (
+                <ItemPlanet
+                  key={item.item_id}
+                  item={item}
+                  itemIndex={i}
+                  totalItems={items.length}
+                  agentStates={agentsByItem[item.item_id] || {}}
+                  itemBids={bids[item.item_id] || []}
+                  stage3Plan={stage3Plan}
+                />
+              ))}
+              {items.length === 0 && (
+                <div className="planets-empty">Waiting for items from Stage 1...</div>
+              )}
+            </div>
+          ) : (
+            /* Stages 1, 2, 4: agent-centric cards as before */
+            <div className={`mc-agents-row mc-agents-${stage.agents.length}`}>
+              {stage.agents.map((agent, i) => (
+                <AgentCard key={agent.id} agent={agent} state={agents[agent.id]}
+                  perItem={agentsRaw[agent.id] || {}} items={items} index={i}>
+                </AgentCard>
+              ))}
+            </div>
+          )}
 
           {/* Stage-specific embedded content */}
-          {stage.id === 1 && <ExtractionContent job={job} agents={agents} />}
-          {stage.id === 2 && <AnalysisContent items={items} />}
-          {stage.id === 4 && <DecisionContent decisions={decisions} items={items} onExecuteItem={onExecuteItem} />}
+          {stage.id === 1 && <ProcessingContent job={job} agents={agents} items={items} />}
+          {stage.id === 3 && <DecisionContent decisions={decisions} items={items} onExecuteItem={onExecuteItem} />}
         </motion.div>
       </AnimatePresence>
     </div>

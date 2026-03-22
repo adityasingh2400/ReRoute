@@ -67,10 +67,17 @@ async def handle_route_bid(ctx: Context, sender: str, msg: RouteBidRequest):
 
     prices = [c.price for c in comps if c.price > 0]
     if prices:
-        avg_price = statistics.mean(prices)
-        median_price = statistics.median(prices)
-        low_price = min(prices)
-        high_price = max(prices)
+        prices.sort()
+        if len(prices) >= 4:
+            q1_idx = len(prices) // 4
+            q3_idx = 3 * len(prices) // 4
+            q1, q3 = prices[q1_idx], prices[q3_idx]
+            iqr = q3 - q1
+            prices = [p for p in prices if (q1 - 1.5 * iqr) <= p <= (q3 + 1.5 * iqr)]
+        avg_price = statistics.mean(prices) if prices else 0.0
+        median_price = statistics.median(prices) if prices else 0.0
+        low_price = min(prices) if prices else 0.0
+        high_price = max(prices) if prices else 0.0
     else:
         avg_price = median_price = low_price = high_price = 0.0
 
@@ -130,8 +137,18 @@ async def handle_delegation(ctx: Context, sender: str, msg: DelegationRequest):
         ctx.logger.warning(f"Live comp search failed during delegation: {e}")
 
     prices = [c.price for c in comps if c.price > 0]
-    avg_price = statistics.mean(prices) if prices else 0.0
-    median_price = statistics.median(prices) if prices else 0.0
+    if prices:
+        prices.sort()
+        if len(prices) >= 4:
+            q1_idx = len(prices) // 4
+            q3_idx = 3 * len(prices) // 4
+            q1, q3 = prices[q1_idx], prices[q3_idx]
+            iqr = q3 - q1
+            prices = [p for p in prices if (q1 - 1.5 * iqr) <= p <= (q3 + 1.5 * iqr)]
+        avg_price = statistics.mean(prices) if prices else 0.0
+        median_price = statistics.median(prices) if prices else 0.0
+    else:
+        avg_price = median_price = 0.0
 
     cond_mult = CONDITION_DISCOUNTS.get(item.condition_label, 0.75)
     suggested_price = round(median_price * cond_mult, 2) if median_price else 0.0

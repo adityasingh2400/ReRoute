@@ -167,6 +167,12 @@ class JobStore:
                 aggregated[agent_name] = best
         return aggregated
 
+    def get_agent_states_raw(self, job_id: str) -> dict[str, dict[str, dict]]:
+        """Return raw per-item agent states: { agent_name: { item_id: state } }.
+        Used by the frontend for item-centric display where each item card
+        needs to know the status of each of its own agents."""
+        return self._agent_states.get(job_id, {})
+
     # ── Full State (for dashboard) ────────────────────────────────────────
 
     def get_full_state(self, job_id: str) -> dict:
@@ -199,6 +205,7 @@ class JobStore:
                 for iid in job.item_ids
             },
             "agent_states": self.get_agent_states(job_id),
+            "agent_states_raw": self.get_agent_states_raw(job_id),
         }
 
     # ── Persistence ───────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ class ItemCard(BaseModel):
     segment_end_sec: float = 0.0
     evidence_references: list[str] = Field(default_factory=list)
     raw_transcript_segment: str = ""
+    hero_frame_indices_raw: list[int] = Field(default_factory=list, exclude=True)
 
     @property
     def all_defects(self) -> list[DefectSignal]:

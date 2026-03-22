@@ -48,3 +48,15 @@ Thumbs.db
 # ONNX models (rembg downloads)
 .u2net/
 .gstack/
+
+# Demo cache (pre-computed snapshot data)
+.demo_cache/
+
+# Test artifacts
+test.MOV
+*.MOV
+
+# Agent tooling (local workspace config)
+.agents/
+.claude/
+CLAUDE.md

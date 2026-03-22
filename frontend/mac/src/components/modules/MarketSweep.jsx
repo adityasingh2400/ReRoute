@@ -11,33 +11,33 @@ const LANE_CONFIG = {
   resale: {
     label: 'Resale',
     desc: 'Scanning comparable listings',
-    color: '#6366f1',
+    color: '#7A1B2D',
     icon: ShoppingBag,
   },
   trade_in: {
     label: 'Trade-In',
     desc: 'Checking guaranteed payout options',
-    color: '#14b8a6',
+    color: '#4A7A2E',
     icon: RefreshCw,
   },
   repair: {
     label: 'Repair',
     desc: 'Searching replacement parts and ROI',
-    color: '#f59e0b',
+    color: '#9A7020',
     icon: Wrench,
   },
   bundle: {
     label: 'Bundle',
     desc: 'Testing grouped selling value',
-    color: '#a855f7',
+    color: '#6B4A3A',
     icon: Layers,
   },
 };
 
 const PLATFORM_COLORS = {
-  ebay: '#e53238', mercari: '#4dc9f6', swappa: '#47c96b',
-  amazon: '#ff9900', facebook: '#1877f2', offerup: '#00ab6c',
-  poshmark: '#c13584', craigslist: '#5a0fa0', other: '#6366f1',
+  ebay: '#9A2020', mercari: '#2A5590', swappa: '#4A7A2E',
+  amazon: '#9A7020', facebook: '#2A5590', offerup: '#2A6B3A',
+  poshmark: '#8B2040', craigslist: '#6B4A3A', other: '#7A1B2D',
 };
 
 const ROUTE_LABELS = {
@@ -144,7 +144,7 @@ function QuoteCard({ quote, index, isBest }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1, type: 'spring', stiffness: 160, damping: 18 }}
     >
-      <div className="sw-quote-header" style={{ borderColor: isBest ? '#14b8a6' : 'var(--border)' }}>
+      <div className="sw-quote-header" style={{ borderColor: isBest ? '#4A7A2E' : 'var(--border)' }}>
         <div className="sw-quote-provider">{quote.provider}</div>
         <div className="sw-quote-payout" style={{ color: isBest ? 'var(--success)' : 'var(--text-primary)' }}>
           ${quote.payout?.toFixed?.(2) ?? quote.payout}
@@ -175,17 +175,17 @@ function RepairCard({ part, index }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1, type: 'spring', stiffness: 160, damping: 18 }}
     >
-      <div className="sw-card-img sw-card-img-fallback" style={{ background: 'linear-gradient(135deg, #f59e0b12, #f59e0b06)' }}>
+      <div className="sw-card-img sw-card-img-fallback" style={{ background: 'linear-gradient(135deg, #F5EDD8, #F0E5D0)' }}>
         {part.part_image_url ? (
           <img src={part.part_image_url} alt={part.part_name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         ) : (
-          <Wrench size={28} style={{ opacity: 0.4, color: '#f59e0b' }} />
+          <Wrench size={28} style={{ opacity: 0.4, color: '#9A7020' }} />
         )}
       </div>
       <div className="sw-card-body">
         <div className="sw-card-title">{part.part_name}</div>
         <div className="sw-card-price-row">
-          <span className="sw-card-price" style={{ color: '#f59e0b' }}>${part.part_price?.toFixed(2)}</span>
+          <span className="sw-card-price" style={{ color: '#9A7020' }}>${part.part_price?.toFixed(2)}</span>
         </div>
         <div className="sw-card-meta">
           <Badge platform={part.source?.toLowerCase() || 'amazon'} />

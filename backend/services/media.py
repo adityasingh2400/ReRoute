@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import uuid
@@ -10,6 +11,32 @@ from backend.config import settings
 
 logger = logging.getLogger(__name__)
 
+# ── Frame cache (keyed by video content hash) ────────────────────────────────
+# Same pattern as the Gemini upload cache: identical video content → same frames
+_frame_cache: dict[str, list[str]] = {}
+_frame_locks: dict[str, asyncio.Lock] = {}
+_frame_global_lock = asyncio.Lock()
+
+_VIDEO_EXTENSIONS = {".mov", ".mp4", ".avi", ".mkv", ".webm", ".m4v", ".3gp"}
+
+
+def preload_frame_cache(content_hash: str, frame_paths: list[str]) -> None:
+    """Pre-populate the frame cache from a snapshot. Called by snapshot loader."""
+    _frame_cache[content_hash] = frame_paths
+
+
+def _video_content_hash(path: str) -> str:
+    """Fast MD5 of first+last 2MB — fingerprints identical videos regardless of filename."""
+    h = hashlib.md5()
+    size = Path(path).stat().st_size
+    chunk = 2 * 1024 * 1024
+    with open(path, "rb") as f:
+        h.update(f.read(chunk))
+        if size > chunk * 2:
+            f.seek(-chunk, 2)
+            h.update(f.read(chunk))
+    return h.hexdigest()
+
 
 class MediaService:
     async def extract_frames(
@@ -18,41 +45,119 @@ class MediaService:
         output_dir: str | None = None,
         interval_sec: float = 2.0,
     ) -> list[str]:
-        out = Path(output_dir or settings.frames_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        prefix = uuid.uuid4().hex[:8]
-        pattern = str(out / f"{prefix}_%04d.jpg")
+        # ── Cache lookup by content hash ──────────────────────────────────
+        content_hash = await asyncio.to_thread(_video_content_hash, video_path)
 
-        cmd = [
-            "ffmpeg", "-i", video_path,
-            "-vf", f"fps=1/{interval_sec}",
-            "-q:v", "2",
-            pattern,
-            "-y", "-loglevel", "error",
-        ]
+        if content_hash in _frame_cache:
+            cached = _frame_cache[content_hash]
+            if cached and all(Path(p).exists() for p in cached):
+                print(f"[FRAMES] Cache hit: {len(cached)} frames "
+                      f"(hash: {content_hash[:8]}…)")
+                return cached
 
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            _, stderr = await proc.communicate()
+        # ── Lock per content hash (prevents duplicate ffmpeg runs) ────────
+        async with _frame_global_lock:
+            if content_hash not in _frame_locks:
+                _frame_locks[content_hash] = asyncio.Lock()
+            lock = _frame_locks[content_hash]
 
-            if proc.returncode != 0:
-                logger.error("ffmpeg frame extraction failed: %s", stderr.decode())
+        async with lock:
+            # Double-check after acquiring lock (pre-extraction may have finished)
+            if content_hash in _frame_cache:
+                cached = _frame_cache[content_hash]
+                if cached and all(Path(p).exists() for p in cached):
+                    print(f"[FRAMES] Cache hit (after wait): {len(cached)} frames "
+                          f"(hash: {content_hash[:8]}…)")
+                    return cached
+
+            # ── Run ffmpeg ────────────────────────────────────────────────
+            out = Path(output_dir or settings.frames_dir)
+            out.mkdir(parents=True, exist_ok=True)
+            prefix = uuid.uuid4().hex[:8]
+            pattern = str(out / f"{prefix}_%04d.jpg")
+
+            # Optimizations vs the old command:
+            #  -hwaccel auto     → use VideoToolbox (macOS) for HEVC decode
+            #  scale=1280:-2     → 4K→720p before JPEG encode (6x fewer pixels)
+            #  -q:v 5            → slightly lower quality, much faster encode
+            #  -threads 4        → cap threads to avoid starving Gemini tasks
+            cmd = [
+                "ffmpeg",
+                "-hwaccel", "auto",
+                "-i", video_path,
+                "-vf", f"scale=1280:-2,fps=1/{interval_sec}",
+                "-q:v", "5",
+                "-threads", "4",
+                pattern,
+                "-y", "-loglevel", "error",
+            ]
+
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                _, stderr = await proc.communicate()
+
+                if proc.returncode != 0:
+                    logger.error("ffmpeg frame extraction failed: %s", stderr.decode())
+                    if settings.demo_mode:
+                        return self._generate_placeholder_frames(out, prefix)
+                    return []
+
+                frames = sorted(out.glob(f"{prefix}_*.jpg"))
+                result = [str(f) for f in frames]
+
+                # Store in cache
+                if result:
+                    _frame_cache[content_hash] = result
+                    print(f"[FRAMES] Extracted and cached {len(result)} frames "
+                          f"(hash: {content_hash[:8]}…)")
+
+                return result
+
+            except FileNotFoundError:
+                logger.error("ffmpeg not found on PATH")
                 if settings.demo_mode:
                     return self._generate_placeholder_frames(out, prefix)
                 return []
 
-            frames = sorted(out.glob(f"{prefix}_*.jpg"))
-            return [str(f) for f in frames]
+    @classmethod
+    async def preextract_demo_frames(cls) -> None:
+        """Pre-extract frames from the demo video at startup so pipeline runs
+        get an instant cache hit (0.0s) instead of waiting 33-63s for ffmpeg."""
+        upload_dir = Path(settings.upload_dir)
+        upload_dir.mkdir(parents=True, exist_ok=True)
 
-        except FileNotFoundError:
-            logger.error("ffmpeg not found on PATH")
-            if settings.demo_mode:
-                return self._generate_placeholder_frames(out, prefix)
-            return []
+        candidates = sorted(
+            upload_dir.glob("*"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        video = next(
+            (c for c in candidates if c.suffix.lower() in _VIDEO_EXTENSIONS),
+            None,
+        )
+        if not video:
+            fallback = Path("test.MOV")
+            if fallback.exists():
+                video = fallback
+            else:
+                print("[FRAMES] ⚠ No demo video found — skipping pre-extraction")
+                return
+
+        import time as _t
+
+        t0 = _t.time()
+        size_mb = video.stat().st_size / 1024 / 1024
+        print(f"[FRAMES] ═══ Pre-extracting frames: {video.name} ({size_mb:.0f}MB) ═══")
+
+        svc = cls()
+        frames = await svc.extract_frames(str(video))
+        elapsed = _t.time() - t0
+        print(f"[FRAMES] ═══ Pre-extraction complete: {len(frames)} frames "
+              f"in {elapsed:.1f}s ═══", flush=True)
 
     async def extract_audio(self, video_path: str) -> str:
         out_dir = Path(settings.frames_dir)
@@ -93,10 +198,10 @@ class MediaService:
                 "drains pretty fast now. And finally this mechanical keyboard with "
                 "its original cable, basically brand new condition."
             )
-        audio_path = await self.extract_audio(video_path)
-        if not audio_path:
-            return ""
-        return audio_path
+        # Use Gemini for transcription (extract_audio only produces a file path, not text)
+        from backend.services.gemini import GeminiService
+        gemini = GeminiService()
+        return await gemini.transcribe_from_video(video_path)
 
     async def get_video_metadata(self, video_path: str) -> dict:
         cmd = [

@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, RefreshCw, Wrench, Layers, Trophy, Clock, RotateCcw } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Wrench, Trophy, Clock, RotateCcw } from 'lucide-react';
 import AnimatedValue from '../shared/AnimatedValue';
 
 const ROUTE_ICONS = {
   sell_as_is: ShoppingBag,
   trade_in: RefreshCw,
   repair_then_sell: Wrench,
-  bundle_then_sell: Layers,
   return: RotateCcw,
 };
 
@@ -15,7 +14,6 @@ const ROUTE_LABELS = {
   sell_as_is: 'Sell As-Is',
   trade_in: 'Trade-In',
   repair_then_sell: 'Repair & Resell',
-  bundle_then_sell: 'Bundle & Sell',
   return: 'Return',
 };
 

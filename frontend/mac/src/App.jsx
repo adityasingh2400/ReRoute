@@ -1,11 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Monitor, Wifi, WifiOff, Activity } from 'lucide-react';
+import { Wifi, WifiOff, Activity } from 'lucide-react';
 import Layout from './components/Layout';
 import { useJob } from './hooks/useJob';
 
 export default function App() {
-  const [presentationMode, setPresentationMode] = useState(false);
   const [jobId, setJobId] = useState(null);
 
   const {
@@ -17,6 +16,8 @@ export default function App() {
     threads,
     agents,
     agentsRaw,
+    agentsByItem,
+    stage3Plan,
     connected,
     events,
     lastEvent,
@@ -27,7 +28,6 @@ export default function App() {
 
   const agentSummary = useMemo(() => {
     const entries = Object.values(agents);
-    // Handle both normalized (thinking/done) and raw backend (agent_started/agent_completed) statuses
     const active = entries.filter((a) => ['thinking', 'agent_started', 'agent_progress'].includes(a.status)).length;
     const done = entries.filter((a) => ['done', 'agent_completed'].includes(a.status)).length;
     const total = entries.length;
@@ -63,19 +63,11 @@ export default function App() {
             {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
             <span>{connected ? 'Live' : 'Offline'}</span>
           </div>
-          <button
-            className={`presentation-toggle ${presentationMode ? 'active' : ''}`}
-            onClick={() => setPresentationMode(!presentationMode)}
-          >
-            <Monitor size={14} />
-            Presentation
-          </button>
         </div>
       </header>
 
       <AnimatePresence mode="wait">
         <Layout
-          presentationMode={presentationMode}
           job={job}
           items={items}
           bids={bids}
@@ -84,6 +76,8 @@ export default function App() {
           threads={threads}
           agents={agents}
           agentsRaw={agentsRaw}
+          agentsByItem={agentsByItem}
+          stage3Plan={stage3Plan}
           events={events}
           lastEvent={lastEvent}
           onUpload={handleUpload}

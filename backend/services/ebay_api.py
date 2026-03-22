@@ -18,7 +18,7 @@ class EbayService:
 
     async def _client(self) -> httpx.AsyncClient:
         if self._http is None or self._http.is_closed:
-            self._http = httpx.AsyncClient(timeout=30.0)
+            self._http = httpx.AsyncClient(timeout=10.0)
         return self._http
 
     def _auth_headers(self) -> dict[str, str]:

@@ -45,7 +45,7 @@ export function useWebSocket(jobId) {
         if (!alive) return;
         try {
           const event = JSON.parse(msg.data);
-          setEvents((prev) => [...prev, event]);
+          setEvents((prev) => prev.length >= 200 ? [...prev.slice(-100), event] : [...prev, event]);
           setLastEvent(event);
           dispatch(event);
         } catch {}

@@ -1,21 +1,23 @@
 import { useMemo } from 'react';
 import {
-  Cpu, Eye, Search, RefreshCw, Package, Wrench, Layers,
-  Trophy, MessageSquare, ArrowRight,
+  Cpu, Search, RefreshCw, Package, Wrench,
+  Trophy, MessageSquare,
 } from 'lucide-react';
 import MissionControl from '../modules/MissionControl';
 
-/* ── Agent pipeline definition for the status bar ──────────────── */
-const AGENT_PIPELINE = [
-  { id: 'intake', label: 'Intake', icon: Cpu, stage: 1 },
-  { id: 'condition_fusion', label: 'Fusion', icon: Eye, stage: 2 },
-  { id: 'marketplace_resale', label: 'Resale', icon: Search, stage: 3 },
-  { id: 'trade_in', label: 'Trade', icon: RefreshCw, stage: 3 },
-  { id: 'return', label: 'Return', icon: Package, stage: 3 },
-  { id: 'repair_roi', label: 'Repair', icon: Wrench, stage: 3 },
-  { id: 'bundle_opportunity', label: 'Bundle', icon: Layers, stage: 3 },
-  { id: 'route_decider', label: 'Decider', icon: Trophy, stage: 4 },
-  { id: 'concierge', label: 'Concierge', icon: MessageSquare, stage: 5 },
+const STAGE_GROUPS = [
+  { id: 'processing', label: 'Processing', icon: Cpu, agents: ['intake', 'condition_fusion'], stage: 1, concurrent: false },
+  { id: 'routes', label: 'Route Bidding', icon: Search,
+    agents: ['marketplace_resale', 'trade_in', 'return', 'repair_roi'], stage: 2, concurrent: true,
+    subLabels: [
+      { id: 'marketplace_resale', label: 'Resale', icon: Search },
+      { id: 'trade_in', label: 'Trade', icon: RefreshCw },
+      { id: 'return', label: 'Return', icon: Package },
+      { id: 'repair_roi', label: 'Repair', icon: Wrench },
+    ],
+  },
+  { id: 'decider', label: 'Decision', icon: Trophy, agents: ['route_decider'], stage: 3, concurrent: false },
+  { id: 'concierge', label: 'Concierge', icon: MessageSquare, agents: ['concierge'], stage: 4, concurrent: false },
 ];
 
 function normalizeStatus(rawStatus) {
@@ -27,6 +29,25 @@ function normalizeStatus(rawStatus) {
   return rawStatus;
 }
 
+function getGroupStatus(group, agents) {
+  const statuses = group.agents.map((id) => normalizeStatus(agents[id]?.status));
+  if (statuses.some((s) => s === 'thinking')) return 'thinking';
+  if (statuses.every((s) => s === 'done')) return 'done';
+  if (statuses.some((s) => s === 'done')) return 'partial';
+  return 'idle';
+}
+
+function getCurrentStageGroup(agents) {
+  for (let i = STAGE_GROUPS.length - 1; i >= 0; i--) {
+    if (getGroupStatus(STAGE_GROUPS[i], agents) === 'thinking') return i;
+  }
+  for (let i = STAGE_GROUPS.length - 1; i >= 0; i--) {
+    const s = getGroupStatus(STAGE_GROUPS[i], agents);
+    if (s === 'done' || s === 'partial') return i;
+  }
+  return 0;
+}
+
 export default function AgentTheater({
   job,
   items,
@@ -36,45 +57,92 @@ export default function AgentTheater({
   threads,
   agents = {},
   agentsRaw = {},
+  agentsByItem = {},
+  stage3Plan,
   events,
   lastEvent,
   onExecuteItem,
   onSendReply,
 }) {
+  const currentGroupIdx = useMemo(() => getCurrentStageGroup(agents), [agents]);
+
   return (
-    <>
-      {/* ── Agent Status Bar ────────────────────────────────── */}
-      <div className="agent-status-bar">
-        <span className="asb-label">Agents</span>
-        {AGENT_PIPELINE.map((agent, i) => {
-          const state = agents[agent.id];
-          const status = normalizeStatus(state?.status);
-          const nextAgent = AGENT_PIPELINE[i + 1];
-          const showArrow = nextAgent && agent.stage !== nextAgent.stage;
+    <div className="theater-v2">
+      {/* Concurrent-aware Pipeline Bar */}
+      <div className="agent-bar-v2">
+        {STAGE_GROUPS.map((group, i) => {
+          const status = getGroupStatus(group, agents);
+          const isCurrent = i === currentGroupIdx;
+          const isPast = i < currentGroupIdx;
+          const isFuture = i > currentGroupIdx;
+          const Icon = group.icon;
 
           return (
-            <span key={agent.id} style={{ display: 'contents' }}>
-              <span className={`asb-pip ${status}`} title={state?.message || agent.label}>
-                <span className={`asb-dot ${status}`} />
-                <span className="asb-name">{agent.label}</span>
-              </span>
-              {showArrow && (
-                <ArrowRight size={12} className={`asb-arrow ${status === 'done' ? 'active' : ''}`} />
+            <div key={group.id} className="agent-bar-v2-segment" style={{ display: 'contents' }}>
+              {/* Connector before node (not before first) */}
+              {i > 0 && (
+                <div className={`ab2-connector ${isPast ? 'ab2-conn-done' : ''}`}>
+                  <div className="ab2-conn-line" />
+                  {group.concurrent && (
+                    <div className="ab2-fork-indicator">
+                      <div className="ab2-fork-line ab2-fork-top" />
+                      <div className="ab2-fork-line ab2-fork-bot" />
+                    </div>
+                  )}
+                </div>
               )}
-            </span>
+
+              {/* If concurrent, render a parallel track cluster */}
+              {group.concurrent && group.subLabels ? (
+                <div className={`ab2-parallel-cluster ${isCurrent ? 'ab2-cluster-current' : ''} ${isPast ? 'ab2-cluster-past' : ''} ${isFuture ? 'ab2-cluster-future' : ''}`}>
+                  <div className="ab2-cluster-label">{group.label}</div>
+                  <div className="ab2-parallel-tracks">
+                    {group.subLabels.map((sub) => {
+                      const subStatus = normalizeStatus(agents[sub.id]?.status);
+                      const SubIcon = sub.icon;
+                      return (
+                        <div key={sub.id} className={`ab2-track ab2-track-${subStatus}`}>
+                          <div className={`ab2-track-dot ab2-tdot-${subStatus}`}>
+                            {subStatus === 'thinking' && <div className="ab2-track-pulse" />}
+                            <SubIcon size={12} />
+                          </div>
+                          <span className="ab2-track-label">{sub.label}</span>
+                          {subStatus === 'done' && <span className="ab2-track-check">✓</span>}
+                          {subStatus === 'thinking' && <span className="ab2-track-spin" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={[
+                    'ab2-node',
+                    isCurrent && 'ab2-current',
+                    isPast && 'ab2-past',
+                    isFuture && 'ab2-future',
+                    status === 'thinking' && 'ab2-thinking',
+                    status === 'done' && 'ab2-done',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <div className="ab2-icon-ring">
+                    <Icon size={isCurrent ? 18 : 14} />
+                  </div>
+                  <span className="ab2-label">{group.label}</span>
+                </div>
+              )}
+            </div>
           );
         })}
-        <span className="asb-counter">
-          {Object.values(agents).filter((a) => ['thinking', 'agent_started', 'agent_progress'].includes(a.status)).length}/
-          {AGENT_PIPELINE.length}
-        </span>
       </div>
 
-      {/* ── Unified Mission Control — THE entire center panel ── */}
+      {/* Mission Control Content */}
       <div className="theater-content">
         <MissionControl
           agents={agents}
           agentsRaw={agentsRaw}
+          agentsByItem={agentsByItem}
+          stage3Plan={stage3Plan}
           items={items}
           decisions={decisions}
           bids={bids}
@@ -83,6 +151,6 @@ export default function AgentTheater({
           onExecuteItem={onExecuteItem}
         />
       </div>
-    </>
+    </div>
   );
 }

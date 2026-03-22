@@ -29,19 +29,32 @@ class ListingAssetOptimizationSystem:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def optimize(self, item: ItemCard) -> list[ListingImage]:
-        candidates = item.all_frame_paths
-        if not candidates:
+        if not item.hero_frame_paths and not item.all_frame_paths:
             logger.warning("No frame candidates for item %s", item.item_id)
             return []
 
-        scored = []
-        for path in candidates:
+        # Hero frames first (Gemini-selected frames of THIS item), then fill from all frames
+        hero_set = set(item.hero_frame_paths or [])
+        hero_scored = []
+        for path in (item.hero_frame_paths or []):
             score = self._score_frame(path)
             if score >= MIN_SHARPNESS:
-                scored.append((path, score))
+                hero_scored.append((path, score))
 
-        scored.sort(key=lambda x: x[1], reverse=True)
-        filtered = self._reject_duplicates([p for p, _ in scored])
+        extra_scored = []
+        for path in (item.all_frame_paths or []):
+            if path in hero_set:
+                continue
+            score = self._score_frame(path)
+            if score >= MIN_SHARPNESS:
+                extra_scored.append((path, score))
+
+        hero_scored.sort(key=lambda x: x[1], reverse=True)
+        extra_scored.sort(key=lambda x: x[1], reverse=True)
+
+        # Hero frames get priority, extras fill remaining slots
+        ordered = [p for p, _ in hero_scored] + [p for p, _ in extra_scored]
+        filtered = self._reject_duplicates(ordered)
 
         results: list[ListingImage] = []
         for i, src_path in enumerate(filtered[:MAX_IMAGES]):

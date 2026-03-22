@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 
 from uagents import Agent, Context, Protocol
 
@@ -19,9 +20,13 @@ from backend.protocols.messages import (
     RouteBidRequest,
     RouteBidResponse,
 )
+from backend.services.apple_trade_in import get_apple_trade_in
+
+logger = logging.getLogger(__name__)
 
 trade_in_proto = Protocol(name="trade_in_evaluator", version="0.1.0")
 
+# Fallback providers (used when Apple API is unavailable)
 _PROVIDERS: dict[str, dict] = {
     "Apple Trade In": {
         "brands": ["apple", "iphone", "ipad", "macbook", "airpods", "apple watch"],
@@ -55,6 +60,13 @@ _PROVIDERS: dict[str, dict] = {
     },
 }
 
+# Other providers expressed as a ratio of Apple's payout
+_OTHER_PROVIDER_RATIOS: list[tuple[str, float, str, str]] = [
+    ("Best Buy Trade-In", 0.75, "instant", "minimal"),
+    ("Decluttr", 0.60, "week", "low"),
+    ("Gazelle", 0.70, "week", "low"),
+]
+
 
 def _estimate_retail_price(item: ItemCard) -> float:
     """Deterministic rough retail estimate derived from item identity."""
@@ -81,30 +93,8 @@ def _condition_multiplier(item: ItemCard) -> float:
     return 0.5 if major else 0.75
 
 
-@trade_in_proto.on_message(model=RouteBidRequest, replies={RouteBidResponse})
-async def handle_route_bid(ctx: Context, sender: str, msg: RouteBidRequest):
-    ctx.logger.info(f"Evaluating trade-in for job {msg.job_id}")
-    item = ItemCard.model_validate_json(msg.item_card_json)
-
-    if not item.is_electronics:
-        bid = RouteBid(
-            item_id=item.item_id,
-            route_type=RouteType.TRADE_IN,
-            viable=False,
-            confidence=0.95,
-            explanation=f"Trade-in not applicable for {item.category.value} items",
-        )
-        await ctx.send(
-            sender,
-            RouteBidResponse(
-                job_id=msg.job_id,
-                item_id=item.item_id,
-                route_type=RouteType.TRADE_IN.value,
-                bid_json=bid.model_dump_json(),
-            ),
-        )
-        return
-
+def _fallback_quotes(item: ItemCard) -> list[TradeInQuote]:
+    """Build quotes using the deterministic formula (fallback path)."""
     retail = _estimate_retail_price(item)
     cond_mult = _condition_multiplier(item)
     name_lower = item.name_guess.lower()
@@ -135,10 +125,67 @@ async def handle_route_bid(ctx: Context, sender: str, msg: RouteBidRequest):
                 confidence=0.5,
             )
         )
+    return quotes
 
+
+async def _build_quotes(item: ItemCard) -> tuple[list[TradeInQuote], str]:
+    """Build trade-in quotes, using Apple's live API when possible.
+
+    Returns (quotes, explanation).
+    """
+    apple = await get_apple_trade_in(item.name_guess, item.condition_label)
+
+    if apple:
+        apple_payout = apple["estimated_payout"]
+        matched = apple["matched_model"]
+        condition = apple["condition"]
+        url = apple["url"]
+
+        quotes = [
+            TradeInQuote(
+                provider="Apple Trade In",
+                payout=apple_payout,
+                speed="days",
+                effort="low",
+                confidence=0.92,
+                url=url,
+            ),
+        ]
+        # Scale other providers relative to Apple's real value
+        for name, ratio, speed, effort in _OTHER_PROVIDER_RATIOS:
+            quotes.append(
+                TradeInQuote(
+                    provider=name,
+                    payout=round(apple_payout * ratio, 2),
+                    speed=speed,
+                    effort=effort,
+                    confidence=0.60,
+                )
+            )
+
+        explanation = (
+            f"Apple Trade In: ${apple_payout:.2f} for {matched} "
+            f"({condition} condition) — live quote"
+        )
+        logger.info("Apple Trade-In API hit: %s → $%.2f", matched, apple_payout)
+        return quotes, explanation
+
+    # Fallback to deterministic formula
+    logger.info(
+        "Apple Trade-In API miss for '%s', using fallback formula",
+        item.name_guess,
+    )
+    quotes = _fallback_quotes(item)
+    best = max(quotes, key=lambda q: q.payout)
+    explanation = f"Best trade-in: {best.provider} @ ${best.payout:.2f}"
+    return quotes, explanation
+
+
+def _bid_from_quotes(
+    item: ItemCard, quotes: list[TradeInQuote], explanation: str
+) -> RouteBid:
     best_quote = max(quotes, key=lambda q: q.payout)
-
-    bid = RouteBid(
+    return RouteBid(
         item_id=item.item_id,
         route_type=RouteType.TRADE_IN,
         viable=True,
@@ -146,9 +193,31 @@ async def handle_route_bid(ctx: Context, sender: str, msg: RouteBidRequest):
         effort=EffortLevel.LOW,
         speed=SpeedEstimate.DAYS,
         confidence=best_quote.confidence,
-        explanation=f"Best trade-in: {best_quote.provider} @ ${best_quote.payout:.2f}",
+        explanation=explanation,
         trade_in_quotes=quotes,
     )
+
+
+def _not_applicable_bid(item: ItemCard) -> RouteBid:
+    return RouteBid(
+        item_id=item.item_id,
+        route_type=RouteType.TRADE_IN,
+        viable=False,
+        confidence=0.95,
+        explanation=f"Trade-in not applicable for {item.category.value} items",
+    )
+
+
+@trade_in_proto.on_message(model=RouteBidRequest, replies={RouteBidResponse})
+async def handle_route_bid(ctx: Context, sender: str, msg: RouteBidRequest):
+    ctx.logger.info(f"Evaluating trade-in for job {msg.job_id}")
+    item = ItemCard.model_validate_json(msg.item_card_json)
+
+    if not item.is_electronics:
+        bid = _not_applicable_bid(item)
+    else:
+        quotes, explanation = await _build_quotes(item)
+        bid = _bid_from_quotes(item, quotes, explanation)
 
     await ctx.send(
         sender,
@@ -167,66 +236,10 @@ async def handle_delegation(ctx: Context, sender: str, msg: DelegationRequest):
     item = ItemCard.model_validate_json(msg.payload_json)
 
     if not item.is_electronics:
-        bid = RouteBid(
-            item_id=item.item_id,
-            route_type=RouteType.TRADE_IN,
-            viable=False,
-            confidence=0.95,
-            explanation=f"Trade-in not applicable for {item.category.value} items",
-        )
-        await ctx.send(sender, DelegationResponse(
-            from_agent="trade_in_agent",
-            job_id=msg.job_id,
-            item_id=msg.item_id,
-            result_json=bid.model_dump_json(),
-            confidence=bid.confidence,
-        ))
-        return
-
-    retail = _estimate_retail_price(item)
-    cond_mult = _condition_multiplier(item)
-    name_lower = item.name_guess.lower()
-
-    quotes: list[TradeInQuote] = []
-    for provider_name, cfg in _PROVIDERS.items():
-        brand_match = not cfg["brands"] or any(b in name_lower for b in cfg["brands"])
-        if not brand_match:
-            continue
-        payout = round(retail * cfg["multiplier"] * cond_mult, 2)
-        quotes.append(
-            TradeInQuote(
-                provider=provider_name,
-                payout=payout,
-                speed=cfg["speed"],
-                effort=cfg["effort"],
-                confidence=0.7 if brand_match else 0.4,
-            )
-        )
-
-    if not quotes:
-        quotes.append(
-            TradeInQuote(
-                provider="Decluttr",
-                payout=round(retail * 0.20 * cond_mult, 2),
-                speed="week",
-                effort="low",
-                confidence=0.5,
-            )
-        )
-
-    best_quote = max(quotes, key=lambda q: q.payout)
-
-    bid = RouteBid(
-        item_id=item.item_id,
-        route_type=RouteType.TRADE_IN,
-        viable=True,
-        estimated_value=best_quote.payout,
-        effort=EffortLevel.LOW,
-        speed=SpeedEstimate.DAYS,
-        confidence=best_quote.confidence,
-        explanation=f"Best trade-in: {best_quote.provider} @ ${best_quote.payout:.2f}",
-        trade_in_quotes=quotes,
-    )
+        bid = _not_applicable_bid(item)
+    else:
+        quotes, explanation = await _build_quotes(item)
+        bid = _bid_from_quotes(item, quotes, explanation)
 
     await ctx.send(sender, DelegationResponse(
         from_agent="trade_in_agent",
