@@ -3274,8 +3274,8 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 56px 64px;
-  padding: 32px 24px 48px;
+  gap: 48px 40px;
+  padding: 24px 16px 48px;
   min-height: 400px;
 }
 .planets-empty {
@@ -3292,64 +3292,42 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 320px;
+  width: 380px;
   min-height: 340px;
-  padding-top: 72px;
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(222, 212, 200, 0.6);
-  border-radius: 24px;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.4s ease, border-color 0.4s ease;
-  padding-bottom: 20px;
+  padding: 20px 16px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
 }
 .planet-system:hover {
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.07);
-  border-color: rgba(200, 190, 178, 0.7);
+  box-shadow: none;
+  border-color: transparent;
 }
 .planet-system.planet-active {
-  border-color: rgba(196, 30, 58, 0.25);
-  box-shadow: 0 4px 40px rgba(196, 30, 58, 0.08);
+  border-color: transparent;
+  box-shadow: none;
 }
 .planet-system.planet-done {
-  border-color: rgba(74, 122, 46, 0.35);
-  box-shadow: 0 4px 32px rgba(74, 122, 46, 0.08);
+  border-color: transparent;
+  box-shadow: none;
 }
 
-/* SVG connection lines */
-.planet-connections {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 340px;
-  pointer-events: none;
-  z-index: 0;
-}
-.planet-line {
-  stroke: #EAE0D5;
-  stroke-width: 0.5;
-  stroke-dasharray: none;
-  transition: stroke 0.4s ease;
-}
-.planet-line-thinking {
-  stroke: var(--primary);
-  stroke-opacity: 0.5;
-  animation: line-pulse 2s ease-in-out infinite;
-}
-.planet-line-done {
-  stroke: var(--success);
-  stroke-opacity: 0.4;
-}
-@keyframes line-pulse {
-  0%, 100% { stroke-opacity: 0.3; }
-  50% { stroke-opacity: 0.7; }
+/* Agent route badges — horizontal row above the planet */
+.planet-agents-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-/* ── Planet Core (the item itself) ─────────────────────────── */
+/* ── Planet Core (the item itself) — rounded rectangle ─────── */
 .planet-core {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
+  width: 160px;
+  height: 160px;
+  border-radius: 24px;
   overflow: hidden;
   border: 3px solid #222;
   background: #fff;
@@ -3357,14 +3335,14 @@ body {
   z-index: 2;
   flex-shrink: 0;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.12);
 }
 .planet-core-active {
   border-color: var(--primary);
 }
 .planet-core-done {
   border-color: var(--success);
-  box-shadow: 4px 4px 0 rgba(74, 122, 46, 0.2);
+  box-shadow: 5px 5px 0 rgba(74, 122, 46, 0.2);
 }
 .planet-img {
   width: 100%;
@@ -3379,15 +3357,6 @@ body {
   justify-content: center;
   color: var(--text-tertiary);
 }
-.planet-glow {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.planet-core-active .planet-glow {
-  box-shadow: 0 0 30px var(--primary), 0 0 60px rgba(196, 30, 58, 0.2);
-}
 
 /* ── Planet Label ──────────────────────────────────────────── */
 .planet-label {
@@ -3400,15 +3369,15 @@ body {
   position: relative;
 }
 .planet-name {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--text-primary);
   text-align: center;
-  max-width: 240px;
+  max-width: 320px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 .planet-tags {
   display: flex;
@@ -3460,33 +3429,17 @@ body {
 
 /* ── Satellite Agents ──────────────────────────────────────── */
 .sat-agent {
-  position: absolute;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   cursor: pointer;
   z-index: 3;
   transition: transform 0.2s ease;
 }
 .sat-agent:hover {
-  transform: scale(1.12);
-}
-.sat-pos-top-left {
-  top: 14px;
-  left: 14px;
-}
-.sat-pos-top-right {
-  top: 14px;
-  right: 14px;
-}
-.sat-pos-bottom-right {
-  bottom: 140px;
-  right: 14px;
-}
-.sat-pos-bottom-left {
-  bottom: 140px;
-  left: 14px;
+  transform: scale(1.1);
 }
 
 .sat-icon-orb {
@@ -4965,14 +4918,15 @@ body {
    ══════════════════════════════════════════════════════════════════ */
 .exec-anim-overlay {
   position: fixed; inset: 0; z-index: 10000;
-  background: radial-gradient(ellipse at center, rgba(10,10,20,0.96) 0%, rgba(0,0,0,0.99) 100%);
+  background: radial-gradient(ellipse at 50% 55%, rgba(90,10,26,0.25) 0%, rgba(6,4,8,0.98) 60%, rgba(0,0,0,0.99) 100%);
+  overflow: hidden;
 }
 .exec-anim-svg { pointer-events: none; }
 .exec-anim-label {
   position: absolute; bottom: 0; left: 0; right: 0;
-  text-align: center; padding-bottom: 12%;
-  font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.75);
-  letter-spacing: 0.5px; z-index: 2;
+  text-align: center; padding-bottom: 10%;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
+  letter-spacing: 2.5px; text-transform: uppercase; z-index: 2;
 }
 
 /* ══════════════════════════════════════════════════════════════════
