@@ -3824,17 +3824,18 @@ body {
 
 .intake-fs-title {
   font-family: var(--font-display);
-  font-size: 34px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
   color: #4A0F18;
 }
 
 .intake-fs-subtitle {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--text-secondary);
   line-height: 1.5;
   max-width: 440px;
+  letter-spacing: 0.3px;
 }
 
 /* ── Side-by-side cards row ──────────────────────────────────── */

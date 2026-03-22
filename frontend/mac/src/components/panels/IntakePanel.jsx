@@ -73,9 +73,9 @@ export default function IntakePanel({ job, items, onUpload, fullscreen }) {
         transition={{ duration: 0.5 }}
       >
         <div className="intake-fs-header">
-          <h1 className="intake-fs-title">What do you want to get rid of?</h1>
+          <h1 className="intake-fs-title">Film it. Sell it.</h1>
           <p className="intake-fs-subtitle">
-            Upload a video of your items and we'll find the best route for each one
+            One video. Every marketplace. Zero effort.
           </p>
         </div>
 
