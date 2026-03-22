@@ -28,11 +28,11 @@
       "segment_end_sec": 11.5
     },
     {
-      "name_guess": "Apple iPad",
+      "name_guess": "2020 iPad Pro 256GB",
       "category": "electronics",
       "likely_specs": {
         "brand": "Apple",
-        "model": "iPad (2020)",
+        "model": "iPad Pro (2020)",
         "storage": "256GB"
       },
       "visible_defects": [
@@ -59,11 +59,11 @@
       "segment_end_sec": 23.5
     },
     {
-      "name_guess": "Apple iPhone Pro",
+      "name_guess": "iPhone 17 Pro",
       "category": "electronics",
       "likely_specs": {
         "brand": "Apple",
-        "model": "iPhone Pro"
+        "model": "iPhone 17 Pro"
       },
       "visible_defects": [
         {
@@ -90,7 +90,7 @@
     }
   ],
   "searches": {
-    "Apple iPad|Good|Facebook Marketplace,OfferUp": [
+    "2020 iPad Pro 256GB|Good|Facebook Marketplace,OfferUp": [
       {
         "platform": "facebook marketplace",
         "title": "Apple iPad 9th Generation 64GB Space Gray",
@@ -154,7 +154,7 @@
         "match_score": 100.0
       }
     ],
-    "Apple iPhone Pro|Fair|Mercari,Swappa": [
+    "iPhone 17 Pro|Fair|Mercari,Swappa": [
       {
         "platform": "swappa",
         "title": "Apple iPhone 13 Pro 128GB - Sierra Blue - Unlocked",
@@ -186,7 +186,7 @@
         "match_score": 100.0
       }
     ],
-    "Apple iPhone Pro|Fair|Amazon,Craigslist,Poshmark": [
+    "iPhone 17 Pro|Fair|Amazon,Craigslist,Poshmark": [
       {
         "platform": "amazon",
         "title": "Apple iPhone 13 Pro, 128GB, Sierra Blue - Unlocked (Renewed) - Acceptable Condition",
@@ -218,7 +218,7 @@
         "match_score": 95.0
       }
     ],
-    "Apple iPad|Good|Mercari,Swappa": [
+    "2020 iPad Pro 256GB|Good|Mercari,Swappa": [
       {
         "platform": "swappa",
         "title": "Apple iPad 10th Gen - Wi-Fi, 64GB, Blue",
@@ -282,7 +282,7 @@
         "match_score": 100.0
       }
     ],
-    "Apple iPad|Good|Amazon,Craigslist,Poshmark": [
+    "2020 iPad Pro 256GB|Good|Amazon,Craigslist,Poshmark": [
       {
         "platform": "poshmark",
         "title": "APPLE iPad w/ BONUS Accessories 2nd Generation 32GB Wi-Fi ONLY White MD329LL/A",
@@ -324,7 +324,7 @@
         "match_score": 90.0
       }
     ],
-    "Apple iPhone Pro|Fair|Facebook Marketplace,OfferUp": [
+    "iPhone 17 Pro|Fair|Facebook Marketplace,OfferUp": [
       {
         "platform": "offerup",
         "title": "Fair Condition iPhone 13 Pro Max 128GB Gray ATT ONLY",
@@ -400,9 +400,9 @@
       "defects_disclosure": "No defects. The item is in pristine condition with no dents, scratches, or signs of wear.",
       "shipping_policy": "standard"
     },
-    "Apple iPhone Pro": {
-      "title": "Apple iPhone Pro - Shattered Screen / Fair Condition",
-      "description": "Pre-owned Apple iPhone Pro in Fair condition. Please read carefully: the front screen is severely shattered and will require a full screen replacement. This device is perfect for someone with phone repair experience looking for a project, or someone who needs internal parts. Priced to reflect the necessary repairs.",
+    "iPhone 17 Pro": {
+      "title": "iPhone 17 Pro - Shattered Screen / Fair Condition",
+      "description": "Pre-owned iPhone 17 Pro in Fair condition. Please read carefully: the front screen is severely shattered and will require a full screen replacement. This device is perfect for someone with phone repair experience looking for a project, or someone who needs internal parts. Priced to reflect the necessary repairs.",
       "price_strategy": 295.0,
       "price_min": 200.0,
       "price_max": 320.0,
@@ -410,9 +410,9 @@
       "defects_disclosure": "Shattered front screen. Needs repair or replacement. Sold as-is.",
       "shipping_policy": "standard"
     },
-    "Apple iPad": {
-      "title": "Apple iPad (2020) - 256GB Storage - Good Condition",
-      "description": "Up for sale is a pre-owned Apple iPad (2020 model) featuring a spacious 256GB of storage. This tablet is an excellent choice for streaming, reading, mobile gaming, and everyday productivity. The device has been tested and is in good working order, ready for a new user.",
+    "2020 iPad Pro 256GB": {
+      "title": "2020 iPad Pro 256GB - Good Condition",
+      "description": "Up for sale is a pre-owned 2020 iPad Pro featuring a spacious 256GB of storage. This tablet is an excellent choice for streaming, reading, mobile gaming, and everyday productivity. The device has been tested and is in good working order, ready for a new user.",
       "price_strategy": 175.0,
       "price_min": 140.0,
       "price_max": 225.0,
