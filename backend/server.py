@@ -576,23 +576,30 @@ async def run_pipeline(job_id: str) -> None:
         await emit_agent_event(job_id, "agent_progress", {"agent": "intake", "message": "Analyzing video with Gemini...", "progress": 0.1})
 
         async def _on_frames_done(fps):
-            frame_urls = [f"/frames/{__import__('pathlib').Path(p).name}" for p in fps]
-            await emit_agent_event(job_id, "agent_progress", {
-                "agent": "intake",
-                "message": f"Extracted {len(fps)} frames",
-                "progress": 0.3,
-                "frame_paths": frame_urls,
-            })
+            # Staged reveal: frames appear one by one (~4s total)
+            from pathlib import Path as _P
+            for i, p in enumerate(fps):
+                frame_urls = [f"/frames/{_P(fp).name}" for fp in fps[:i + 1]]
+                await emit_agent_event(job_id, "agent_progress", {
+                    "agent": "intake",
+                    "message": f"Extracting frame {i + 1}/{len(fps)}...",
+                    "progress": 0.05 + 0.25 * (i + 1) / len(fps),
+                    "frame_paths": frame_urls,
+                })
+                await asyncio.sleep(0.25)
 
         async def _on_transcript_done(t):
+            await asyncio.sleep(0.4)
             await emit_agent_event(job_id, "agent_progress", {
                 "agent": "intake",
                 "message": f"Transcript: {t[:80]}..." if len(t) > 80 else f"Transcript: {t}",
                 "progress": 0.5,
                 "transcript_text": t,
             })
+            await asyncio.sleep(0.6)
 
         async def _on_analysis_done(itms):
+            await asyncio.sleep(0.3)
             await emit_agent_event(job_id, "agent_progress", {
                 "agent": "condition_fusion",
                 "message": f"Found {len(itms)} items — grading each one...",
@@ -633,8 +640,7 @@ async def run_pipeline(job_id: str) -> None:
                 "progress": 0.7 + (0.3 * (idx + 1) / max(len(items), 1)),
             })
             print(f"[PIPELINE]   • {item.name_guess} (confidence: {item.confidence:.0%}, defects: {len(item.all_defects)})")
-            if idx < len(items) - 1:
-                await asyncio.sleep(0.6)
+            await asyncio.sleep(1.0)
 
         await emit_agent_event(job_id, "agent_completed", {
             "agent": "condition_fusion",
@@ -726,6 +732,8 @@ async def run_pipeline(job_id: str) -> None:
             task_name: str, coro: Any, uses_gemini: bool = False,
         ) -> None:
             """Fully self-contained agent task: emits started, runs, emits completed, stores bid."""
+            # Stagger agent starts so they visually cascade
+            await asyncio.sleep(i * 0.3 + 0.1)
             item_t = _time.time()
 
             await emit_agent_event(job_id, "agent_started", {
@@ -844,28 +852,36 @@ async def run_pipeline(job_id: str) -> None:
             sources_done = 0
             total_sources = len(search_tasks)
 
-            # Process results as each source completes (not waiting for all)
+            # Process results as each source completes, with paced reveals
             for completed_task in asyncio.as_completed(search_tasks):
                 source_name, comps = await completed_task
                 sources_done += 1
                 elapsed = _time.time() - item_t
 
+                # Minimum 1.2s between source reveals for demo pacing
+                source_target = sources_done * 1.2
+                if elapsed < source_target:
+                    await asyncio.sleep(source_target - elapsed)
+                    elapsed = _time.time() - item_t
+
                 if comps:
                     all_comps.extend(comps)
-                    # Stream partial comparables to frontend immediately
-                    await manager.broadcast(job_id, "comps_found", {
-                        "item_id": item.item_id,
-                        "source": source_name,
-                        "comparables": [
-                            {
+                    # Stream comparables to frontend with per-listing pacing
+                    for ci, c in enumerate(comps):
+                        await manager.broadcast(job_id, "comps_found", {
+                            "item_id": item.item_id,
+                            "source": source_name,
+                            "comparables": [{
                                 "platform": c.platform, "title": c.title,
                                 "price": c.price, "shipping": c.shipping,
                                 "condition": c.condition, "url": c.url,
                                 "image_url": c.image_url, "match_score": c.match_score,
-                            } for c in comps
-                        ],
-                        "total_so_far": len(all_comps),
-                    })
+                            }],
+                            "total_so_far": len(all_comps) - len(comps) + ci + 1,
+                        })
+                        if ci < len(comps) - 1:
+                            await asyncio.sleep(0.3)
+
                     platforms_found = list({c.platform for c in comps})
                     await emit_agent_event(job_id, "agent_progress", {
                         "agent": agent_name, "item_id": item.item_id,
@@ -984,6 +1000,9 @@ async def run_pipeline(job_id: str) -> None:
 
         async def _decide_and_generate(i: int, item: ItemCard) -> None:
             """Score bids, pick winner, generate listing — fully self-contained per item."""
+            # Stagger items so decisions don't all appear at once
+            await asyncio.sleep(i * 1.5)
+
             bids_for = item_bids[item.item_id]
             await emit_agent_event(job_id, "agent_started", {
                 "agent": "route_decider", "item_id": item.item_id,
@@ -991,6 +1010,7 @@ async def run_pipeline(job_id: str) -> None:
                 "item_name": item.name_guess,
                 "message": f"Scoring {len(bids_for)} bids for {item.name_guess}...",
             })
+            await asyncio.sleep(0.8)
             decision = _decide_best_route(item.item_id, bids_for)
             await store.set_decision(decision)
             await emit_agent_event(job_id, "agent_completed", {
@@ -1002,6 +1022,7 @@ async def run_pipeline(job_id: str) -> None:
                 "elapsed_ms": round((_time.time() - t2) * 1000),
             })
             print(f"[STAGE3] [Item {i+1}] ★ Best route: {decision.best_route.value} → ${decision.estimated_best_value:.2f}")
+            await asyncio.sleep(0.5)
 
             try:
                 optimizer = ListingAssetOptimizationSystem()
