@@ -3665,10 +3665,10 @@ body {
 
 /* ── Floating Trade-In Widget ──────────────────────────────── */
 .flt-tradein {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   margin-top: 10px;
   width: calc(100% - 16px);
   margin-left: 8px;
@@ -3840,13 +3840,13 @@ body {
 
 /* ── Apple Trade-In Widget ───────────────────────────────── */
 .ati-widget {
-  background: #1C1C1E;
-  border: 1px solid #38383A;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px 16px;
   max-width: 240px;
   margin-top: 6px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'DM Sans', sans-serif;
+  font-family: var(--font-ui);
 }
 .ati-header {
   display: flex;
@@ -3856,32 +3856,32 @@ body {
 .ati-apple-logo {
   font-size: 14px;
   line-height: 1;
-  color: #86868B;
+  color: var(--text-tertiary);
 }
 .ati-title {
   font-size: 11px;
-  font-weight: 500;
-  color: #86868B;
+  font-weight: 600;
+  color: var(--text-secondary);
   letter-spacing: 0.1px;
 }
 .ati-live-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #30D158;
+  background: var(--success);
   margin-left: auto;
-  box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
+  box-shadow: 0 0 6px rgba(74, 122, 46, 0.4);
 }
 .ati-divider {
   width: 32px;
   height: 1px;
-  background: #48484A;
+  background: var(--border);
   margin: 8px 0;
 }
 .ati-payout {
   font-size: 28px;
   font-weight: 700;
-  color: #F5F5F7;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
   line-height: 1.1;
 }
@@ -3890,16 +3890,16 @@ body {
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #86868B;
+  color: var(--text-tertiary);
   margin-top: 3px;
 }
 .ati-sep {
-  color: #48484A;
+  color: var(--border-bright);
 }
 .ati-others {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid #2C2C2E;
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -3911,13 +3911,13 @@ body {
   font-size: 11px;
 }
 .ati-alt-name {
-  color: #86868B;
+  color: var(--text-tertiary);
   font-weight: 400;
 }
 .ati-alt-val {
   font-weight: 600;
-  color: #A1A1A6;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'DM Sans', sans-serif;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
