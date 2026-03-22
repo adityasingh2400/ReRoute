@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Runtime data
+data/uploads/*
+data/frames/*
+data/optimized/*
+data/jobs/*
+!data/uploads/.gitkeep
+!data/frames/.gitkeep
+!data/optimized/.gitkeep
+!data/jobs/.gitkeep
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ONNX models (rembg downloads)
+.u2net/
