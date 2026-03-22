@@ -138,33 +138,20 @@ function AgentCard({ agent, state, perItem, items, index, children }) {
    Each item gets its own card with agents orbiting around it
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Orbital positions for agent satellites around each planet ── */
-const ORBIT_POSITIONS = [
-  { angle: -45, radius: 1, label: 'top-left' },
-  { angle: 45, radius: 1, label: 'top-right' },
-  { angle: 135, radius: 1, label: 'bottom-right' },
-  { angle: -135, radius: 1, label: 'bottom-left' },
-];
-
-function FloatingAgentSatellite({ agentId, state, bid, orbitIndex, isExpanded, onToggle }) {
+function FloatingAgentSatellite({ agentId, state, bid, orbitIndex }) {
   const meta = AGENT_META[agentId];
   if (!meta) return null;
   const status = getStatus(state);
   const Icon = meta.icon;
   const hasBid = bid && bid.viable;
-  const pos = ORBIT_POSITIONS[orbitIndex % ORBIT_POSITIONS.length];
+  const jitter = [0, 0.12, -0.06, 0.18][orbitIndex % 4] || 0;
 
   return (
     <motion.div
-      className={`sat-agent sat-${status} sat-pos-${pos.label}`}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        ...(status === 'thinking' ? {} : {}),
-      }}
-      transition={{ delay: orbitIndex * 0.2, type: 'spring', stiffness: 250, damping: 20 }}
-      onClick={onToggle}
+      className={`sat-agent sat-${status}`}
+      initial={{ opacity: 0, scale: 0.7, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: orbitIndex * 0.22 + jitter, type: 'spring', stiffness: 220, damping: 22 }}
       style={{ '--agent-accent': meta.color }}
     >
       <div className={`sat-icon-orb sat-orb-${status}`}>
@@ -192,26 +179,35 @@ function FloatingAgentSatellite({ agentId, state, bid, orbitIndex, isExpanded, o
   );
 }
 
+/* ── Orbital positions for comp cards around the planet ── */
+const COMP_ORBIT = [
+  { x: -55, y: -65 },   // top-left
+  { x: 55, y: -65 },    // top-right
+  { x: 75, y: 10 },     // right
+  { x: 55, y: 85 },     // bottom-right
+  { x: -55, y: 85 },    // bottom-left
+  { x: -75, y: 10 },    // left
+];
+
 function FloatingCompsCloud({ comps }) {
   if (!comps || comps.length === 0) return null;
   return (
-    <motion.div className="flt-comps-cloud"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 22 }}>
+    <div className="flt-comps-orbit">
       <div className="flt-comps-label">
-        <Search size={10} /> {comps.length} listings found
+        <Search size={11} /> {comps.length} listings found
       </div>
-      <div className="flt-comps-rail">
+      <div className="flt-comps-ring">
         {comps.slice(0, 6).map((c, ci) => {
-          const baseDelay = 0.6;
-          const jitter = [0, 0.15, -0.08, 0.22, -0.12, 0.18][ci] || 0;
-          const staggerDelay = baseDelay + ci * 0.45 + jitter;
+          const pos = COMP_ORBIT[ci % COMP_ORBIT.length];
+          const baseDelay = 0.5;
+          const jitter = [0, 0.18, -0.05, 0.25, -0.1, 0.14][ci] || 0;
+          const staggerDelay = baseDelay + ci * 0.35 + jitter;
           return (
             <motion.div key={ci} className="flt-comp-card"
-              initial={{ opacity: 0, scale: 0.7, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: staggerDelay, type: 'spring', stiffness: 220, damping: 24 }}>
+              initial={{ opacity: 0, scale: 0.6, x: 0, y: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              transition={{ delay: staggerDelay, type: 'spring', stiffness: 180, damping: 20 }}
+              style={{ '--orbit-x': `${pos.x}%`, '--orbit-y': `${pos.y}%` }}>
               <div className={`flt-comp-plat plat-${(c.platform || 'other').toLowerCase()}`}>
                 {(c.platform || 'other').charAt(0).toUpperCase() + (c.platform || 'other').slice(1)}
               </div>
@@ -229,7 +225,7 @@ function FloatingCompsCloud({ comps }) {
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -274,7 +270,6 @@ function FloatingTradeInWidget({ allBids }) {
 function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3Plan }) {
   const planAgents = stage3Plan?.plan?.[item.item_id]?.agents || Object.keys(AGENT_META);
   const allBids = itemBids || [];
-  const [expanded, setExpanded] = useState(null);
 
   const activeCount = planAgents.filter((a) => getStatus(agentStates?.[a]) === 'thinking').length;
   const doneCount = planAgents.filter((a) => getStatus(agentStates?.[a]) === 'done').length;
@@ -296,37 +291,41 @@ function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3
     ? (item.visible_defects?.some?.((d) => d.severity === 'major') ? 'Fair' : 'Good')
     : 'Like New';
 
+  const itemJitter = [0, 0.15, 0.08][itemIndex % 3];
+
   return (
     <motion.div
       className={`planet-system ${anyThinking ? 'planet-active' : ''} ${allDone ? 'planet-done' : ''}`}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: itemIndex * 0.25, type: 'spring', stiffness: 160, damping: 20 }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: itemIndex * 0.3 + itemJitter, type: 'spring', stiffness: 140, damping: 18 }}
     >
-      {/* Connection lines from planet to satellites */}
-      <svg className="planet-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {planAgents.map((_, i) => {
-          const pos = ORBIT_POSITIONS[i % ORBIT_POSITIONS.length];
-          const cx = 50, cy = 50;
-          const endX = cx + Math.cos(pos.angle * Math.PI / 180) * 40;
-          const endY = cy + Math.sin(pos.angle * Math.PI / 180) * 40;
+      {/* Agent route badges row */}
+      <div className="planet-agents-row">
+        {planAgents.map((agentId, i) => {
+          const routeType = ROUTE_MAP[agentId];
+          const bid = allBids.find((b) => b.route_type === routeType);
           return (
-            <line key={i} x1={cx} y1={cy} x2={endX} y2={endY}
-              className={`planet-line planet-line-${getStatus(agentStates?.[planAgents[i]])}`} />
+            <FloatingAgentSatellite
+              key={agentId}
+              agentId={agentId}
+              state={agentStates?.[agentId]}
+              bid={bid}
+              orbitIndex={i}
+            />
           );
         })}
-      </svg>
+      </div>
 
       {/* The Planet — the item itself */}
       <motion.div className={`planet-core ${anyThinking ? 'planet-core-active' : ''} ${allDone ? 'planet-core-done' : ''}`}
-        animate={anyThinking ? { boxShadow: ['0 0 20px #3D1818', '0 0 40px #5E2828', '0 0 20px #3D1818'] } : {}}
+        animate={anyThinking ? { boxShadow: ['0 0 16px rgba(61,24,24,0.15)', '0 0 32px rgba(94,40,40,0.25)', '0 0 16px rgba(61,24,24,0.15)'] } : {}}
         transition={anyThinking ? { duration: 2, repeat: Infinity } : {}}>
         {item.hero_frame_paths?.[0] ? (
           <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="planet-img" />
         ) : (
-          <div className="planet-placeholder"><ShoppingBag size={32} /></div>
+          <div className="planet-placeholder"><ShoppingBag size={36} /></div>
         )}
-        <div className="planet-glow" />
       </motion.div>
 
       {/* Item label below the planet */}
@@ -337,7 +336,7 @@ function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3
           {allDone && bestBid && (
             <motion.span className="planet-best"
               initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-              <TrendingUp size={11} /> ${bestBid.estimated_value?.toFixed(0)}
+              <TrendingUp size={12} /> ${bestBid.estimated_value?.toFixed(0)}
             </motion.span>
           )}
           {anyThinking && (
@@ -362,24 +361,7 @@ function ItemPlanet({ item, itemIndex, totalItems, agentStates, itemBids, stage3
         </div>
       </div>
 
-      {/* Orbiting agent satellites */}
-      {planAgents.map((agentId, i) => {
-        const routeType = ROUTE_MAP[agentId];
-        const bid = allBids.find((b) => b.route_type === routeType);
-        return (
-          <FloatingAgentSatellite
-            key={agentId}
-            agentId={agentId}
-            state={agentStates?.[agentId]}
-            bid={bid}
-            orbitIndex={i}
-            isExpanded={expanded === agentId}
-            onToggle={() => setExpanded(expanded === agentId ? null : agentId)}
-          />
-        );
-      })}
-
-      {/* Floating comparables cloud — anchored below the system */}
+      {/* Marketplace comps surrounding the item */}
       <AnimatePresence>
         {streamingComps.length > 0 && (
           <FloatingCompsCloud comps={streamingComps} />
