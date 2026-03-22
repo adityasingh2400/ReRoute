@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, Activity } from 'lucide-react';
 import Layout from './components/Layout';
+import ReRouteLogo from './components/ReRouteLogo';
 import ListingSimulationModal from './components/modules/ListingSimulationModal';
 import ExecuteRouteAnimation from './components/modules/ExecuteRouteAnimation';
 import { useJob } from './hooks/useJob';
@@ -59,9 +60,8 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="topbar-brand">
-          <div className="topbar-logo">R</div>
+          <ReRouteLogo size={28} />
           <span className="topbar-title">ReRoute</span>
-          <span className="topbar-subtitle">Command Center</span>
         </div>
         <div className="topbar-controls">
           {agentSummary.total > 0 && (

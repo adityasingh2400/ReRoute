@@ -537,46 +537,26 @@ export default function MissionControl({
 
   return (
     <div className="mission-control-v2">
-      {/* Stage dots */}
-      <div className="mc-stage-dots">
-        {STAGES.map((s, i) => {
-          const allDone = s.agents.every((a) => getStatus(agents[a.id]) === 'done');
-          const anyThinking = s.agents.some((a) => getStatus(agents[a.id]) === 'thinking');
-          return (
-            <button key={s.id} className={`mc-dot ${i === activeIdx ? 'active' : ''} ${allDone ? 'done' : ''} ${anyThinking ? 'thinking' : ''}`}
-              onClick={() => handleStageClick(i)}>
-              <span className="mc-dot-num">{s.id}</span>
-              <span className="mc-dot-label">{s.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Stage content */}
       <AnimatePresence mode="wait">
         <motion.div key={stage.id} className="mc-stage-content"
           initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.25 }}>
 
-          <div className="mc-stage-header">
-            <span className="mc-stage-number">Stage {stage.id}</span>
-            <h3 className="mc-stage-title">{stage.label}</h3>
-            <p className="mc-stage-desc">{stage.desc}</p>
-            {stage.id === 2 && stage3TaskCount.total > 0 && (
-              <div className="mc-stage3-counter">
-                <span className="mc-s3-badge">
-                  {stage3TaskCount.active > 0 ? (
-                    <><Loader2 size={11} className="mc-spinner" /> {stage3TaskCount.active} active</>
-                  ) : (
-                    <><CheckCircle2 size={11} /> {stage3TaskCount.done} done</>
-                  )}
-                </span>
-                <span className="mc-s3-total">
-                  {stage3TaskCount.done}/{stage3TaskCount.total} agent-tasks
-                </span>
-              </div>
-            )}
-          </div>
+          {stage.id === 2 && stage3TaskCount.total > 0 && (
+            <div className="mc-stage3-counter">
+              <span className="mc-s3-badge">
+                {stage3TaskCount.active > 0 ? (
+                  <><Loader2 size={11} className="mc-spinner" /> {stage3TaskCount.active} active</>
+                ) : (
+                  <><CheckCircle2 size={11} /> {stage3TaskCount.done} done</>
+                )}
+              </span>
+              <span className="mc-s3-total">
+                {stage3TaskCount.done}/{stage3TaskCount.total} agent-tasks
+              </span>
+            </div>
+          )}
 
           {/* Stage 2: FLOATING PLANETS layout */}
           {stage.id === 2 ? (
