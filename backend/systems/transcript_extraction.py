@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from backend.config import settings
@@ -28,10 +29,11 @@ class TranscriptAndFrameExtractionSystem:
         await store.update_job_status(job_id, JobStatus.EXTRACTING)
 
         try:
-            frame_paths = await self.media.extract_frames(video_path)
+            frame_paths, transcript = await asyncio.gather(
+                self.media.extract_frames(video_path),
+                self.gemini.transcribe_from_video(video_path),
+            )
             logger.info("Extracted %d frames for job %s", len(frame_paths), job_id)
-
-            transcript = await self.gemini.transcribe_from_video(video_path)
             logger.info(
                 "Transcript extracted for job %s (%d chars)",
                 job_id,

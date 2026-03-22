@@ -20,6 +20,19 @@ from backend.models.conversation import ConversationThread
 EventCallback = Callable[[str, dict], Awaitable[None]]
 
 
+def _to_url(fs_path: str) -> str:
+    """Convert a filesystem data path to its served URL."""
+    name = Path(fs_path).name
+    low = fs_path.replace("\\", "/")
+    if "/frames/" in low:
+        return f"/frames/{name}"
+    if "/optimized/" in low:
+        return f"/optimized/{name}"
+    if "/uploads/" in low:
+        return f"/uploads/{name}"
+    return fs_path
+
+
 class JobStore:
     def __init__(self) -> None:
         self._jobs: dict[str, Job] = {}
@@ -131,8 +144,11 @@ class JobStore:
         if not job:
             return {}
         items = self.get_items_for_job(job_id)
+        job_data = job.model_dump(mode="json")
+        if job.video_path:
+            job_data["video_url"] = _to_url(job.video_path)
         return {
-            "job": job.model_dump(mode="json"),
+            "job": job_data,
             "items": [i.model_dump(mode="json") for i in items],
             "bids": {
                 iid: [b.model_dump(mode="json") for b in self.get_bids(iid)]

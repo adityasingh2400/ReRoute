@@ -14,6 +14,10 @@ from backend.models.listing_package import ListingImage
 
 logger = logging.getLogger(__name__)
 
+
+def _optimized_path_to_url(path: str) -> str:
+    return f"/optimized/{Path(path).name}"
+
 MIN_SHARPNESS = 50.0
 MAX_IMAGES = 8
 DUPLICATE_THRESHOLD = 0.95
@@ -25,7 +29,7 @@ class ListingAssetOptimizationSystem:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def optimize(self, item: ItemCard) -> list[ListingImage]:
-        candidates = item.hero_frame_paths or item.all_frame_paths
+        candidates = item.all_frame_paths
         if not candidates:
             logger.warning("No frame candidates for item %s", item.item_id)
             return []
@@ -52,7 +56,7 @@ class ListingAssetOptimizationSystem:
 
                 role = "hero" if i == 0 else "secondary"
                 results.append(ListingImage(
-                    path=str(out_path),
+                    path=_optimized_path_to_url(out_path),
                     role=role,
                     original_path=src_path,
                     optimized=True,

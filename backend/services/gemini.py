@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import mimetypes
-import time
 from pathlib import Path
 
 from google import genai
@@ -27,6 +27,9 @@ MIME_MAP = {
     ".3gp": "video/3gpp",
 }
 
+_upload_cache: dict[str, object] = {}
+_upload_lock = asyncio.Lock()
+
 
 def _get_mime_type(path: str) -> str:
     ext = Path(path).suffix.lower()
@@ -36,24 +39,44 @@ def _get_mime_type(path: str) -> str:
     return guess or "video/mp4"
 
 
-def _upload_video_and_wait(client: genai.Client, video_path: str):
-    mime = _get_mime_type(video_path)
-    print(f"[GEMINI] Uploading video: {video_path} (mime: {mime})")
-    video_file = client.files.upload(file=open(video_path, "rb"), config={"mime_type": mime})
-    print(f"[GEMINI] Upload complete: {video_file.name} (state: {video_file.state})")
+def _frame_path_to_url(path: str) -> str:
+    """Convert a filesystem frame path to a URL served by the static mount."""
+    return f"/frames/{Path(path).name}"
 
-    wait_count = 0
-    while video_file.state == "PROCESSING":
-        wait_count += 1
-        print(f"[GEMINI] File still processing... waiting ({wait_count * 3}s)")
-        time.sleep(3)
-        video_file = client.files.get(name=video_file.name)
 
-    if video_file.state != "ACTIVE":
-        raise RuntimeError(f"File {video_file.name} failed processing: state={video_file.state}")
+async def _upload_video_and_wait(client: genai.Client, video_path: str):
+    """Upload video to Gemini and wait until active. Caches to avoid re-uploading."""
+    if video_path in _upload_cache:
+        cached = _upload_cache[video_path]
+        print(f"[GEMINI] Reusing cached upload: {cached.name}")
+        return cached
 
-    print(f"[GEMINI] File ready: {video_file.name} (state: ACTIVE)")
-    return video_file
+    async with _upload_lock:
+        if video_path in _upload_cache:
+            return _upload_cache[video_path]
+
+        mime = _get_mime_type(video_path)
+        print(f"[GEMINI] Uploading video: {video_path} (mime: {mime})")
+
+        with open(video_path, "rb") as f:
+            video_file = await asyncio.to_thread(
+                client.files.upload, file=f, config={"mime_type": mime}
+            )
+        print(f"[GEMINI] Upload complete: {video_file.name} (state: {video_file.state})")
+
+        wait_count = 0
+        while video_file.state == "PROCESSING":
+            wait_count += 1
+            print(f"[GEMINI] File still processing... waiting ({wait_count * 3}s)")
+            await asyncio.sleep(3)
+            video_file = await asyncio.to_thread(client.files.get, name=video_file.name)
+
+        if video_file.state != "ACTIVE":
+            raise RuntimeError(f"File {video_file.name} failed processing: state={video_file.state}")
+
+        print(f"[GEMINI] File ready: {video_file.name} (state: ACTIVE)")
+        _upload_cache[video_path] = video_file
+        return video_file
 
 
 class GeminiService:
@@ -101,10 +124,11 @@ class GeminiService:
                 + "\n\nReturn ONLY a valid JSON array. No markdown fences. No extra text."
             )
 
-            video_file = _upload_video_and_wait(client, video_path)
+            video_file = await _upload_video_and_wait(client, video_path)
 
             print(f"[GEMINI] Analyzing video with {GEMINI_MODEL}...")
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=GEMINI_MODEL,
                 contents=[video_file, prompt],
             )
@@ -120,9 +144,11 @@ class GeminiService:
             cards: list[ItemCard] = []
             for item in items_data:
                 hero_indices = item.get("hero_frame_indices", [])
-                hero_frames = [frame_paths[i] for i in hero_indices if i < len(frame_paths)]
-                if not hero_frames and frame_paths:
-                    hero_frames = frame_paths[:3]
+                hero_frames_fs = [frame_paths[i] for i in hero_indices if i < len(frame_paths)]
+                if not hero_frames_fs and frame_paths:
+                    hero_frames_fs = frame_paths[:3]
+
+                hero_frame_urls = [_frame_path_to_url(p) for p in hero_frames_fs]
 
                 visible = []
                 for d in item.get("visible_defects", []):
@@ -153,7 +179,7 @@ class GeminiService:
                     accessories_included=item.get("accessories_included", []),
                     accessories_missing=item.get("accessories_missing", []),
                     confidence=float(item.get("confidence", 0.5)),
-                    hero_frame_paths=hero_frames,
+                    hero_frame_paths=hero_frame_urls,
                     all_frame_paths=frame_paths,
                     segment_start_sec=float(item.get("segment_start_sec", 0.0)),
                     segment_end_sec=float(item.get("segment_end_sec", 0.0)),
@@ -192,7 +218,8 @@ class GeminiService:
                 "Return ONLY valid JSON, no markdown fences."
             )
 
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=GEMINI_MODEL,
                 contents=[prompt],
             )
@@ -228,7 +255,8 @@ class GeminiService:
                 "Explain in 2-3 sentences why the winning route is best for recovering max value with min effort."
             )
 
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=GEMINI_MODEL,
                 contents=[prompt],
             )
@@ -244,10 +272,11 @@ class GeminiService:
 
         try:
             client = self._get_client()
-            video_file = _upload_video_and_wait(client, video_path)
+            video_file = await _upload_video_and_wait(client, video_path)
 
             print(f"[GEMINI] Transcribing speech from video...")
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=GEMINI_MODEL,
                 contents=[
                     video_file,
@@ -294,7 +323,8 @@ class GeminiService:
                 "Prefer listings with images. Return ONLY valid JSON array, no markdown."
             )
 
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=GEMINI_MODEL,
                 contents=[prompt],
                 config=types.GenerateContentConfig(
@@ -316,6 +346,7 @@ class GeminiService:
                     shipping=str(item.get("shipping", "")),
                     condition=item.get("condition", ""),
                     url=item.get("url", ""),
+                    image_url=item.get("image_url", ""),
                     match_score=float(item.get("match_score", 70)),
                 ))
             logger.info("Live search found %d comps for '%s'", len(results), item_name)
@@ -338,6 +369,7 @@ class GeminiService:
 
     def _mock_analyze(self, frame_paths: list[str] | None = None) -> list[ItemCard]:
         frames = frame_paths or []
+        hero_urls = [_frame_path_to_url(p) for p in frames[:2]] if frames else []
         return [
             ItemCard(
                 name_guess="Apple AirPods Pro (2nd Gen)",
@@ -348,7 +380,7 @@ class GeminiService:
                 accessories_included=["Charging case", "USB-C cable"],
                 accessories_missing=["Extra ear tips"],
                 confidence=0.92,
-                hero_frame_paths=frames[:2],
+                hero_frame_paths=hero_urls,
                 all_frame_paths=frames,
                 segment_start_sec=0.0,
                 segment_end_sec=30.0,
