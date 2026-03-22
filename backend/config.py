@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     optimized_dir: str = "./data/optimized"
     jobs_dir: str = "./data/jobs"
 
+    # Agentverse
+    agentverse_api_key: str = ""
+
     # Feature Flags
     enable_facebook_adapter: bool = False
     enable_depop_adapter: bool = False

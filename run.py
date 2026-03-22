@@ -6,6 +6,7 @@ Starts the Bureau (uAgents) and the FastAPI server concurrently.
 from __future__ import annotations
 
 import asyncio
+import logging
 import signal
 import sys
 import threading
@@ -16,11 +17,19 @@ import uvicorn
 from backend.config import settings
 
 
+def _tame_bureau_logs():
+    """Keep useful warnings but suppress verbose gRPC tracebacks on retry."""
+    logging.getLogger("grpc").setLevel(logging.ERROR)
+    logging.getLogger("cosmpy").setLevel(logging.WARNING)
+
+
 def run_bureau_thread():
     """Run the uAgents Bureau in a dedicated thread with its own event loop."""
     import asyncio
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+    _tame_bureau_logs()
 
     from backend.agents.bureau import create_bureau
 
@@ -29,7 +38,7 @@ def run_bureau_thread():
     print(f"  [Bureau] Agents: IntakeAgent, ConditionFusionAgent, ReturnAgent,")
     print(f"           TradeInAgent, MarketplaceResaleAgent, RepairROIAdvisorAgent,")
     print(f"           BundleOpportunityAgent, RouteDeciderAgent, ConciergeAgent")
-    print(f"  [Bureau] Concierge mailbox=True (Agentverse-connected)\n")
+    print(f"  [Bureau] Network: testnet | Concierge mailbox=True (Agentverse-connected)\n")
 
     try:
         bureau.run()

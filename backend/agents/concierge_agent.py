@@ -189,6 +189,7 @@ def create_concierge_agent() -> Agent:
         name="concierge_agent",
         seed=settings.concierge_agent_seed,
         port=8108,
+        network="testnet",
         mailbox=True,
         publish_agent_details=True,
     )

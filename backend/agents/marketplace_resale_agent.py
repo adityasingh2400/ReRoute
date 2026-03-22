@@ -167,6 +167,7 @@ def create_marketplace_resale_agent() -> Agent:
         name="marketplace_resale_agent",
         seed=settings.marketplace_resale_agent_seed,
         port=8104,
+        network="testnet",
     )
     agent.include(resale_proto)
     return agent

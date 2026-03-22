@@ -191,6 +191,7 @@ def create_repair_roi_advisor_agent() -> Agent:
         name="repair_roi_advisor_agent",
         seed=settings.repair_roi_agent_seed,
         port=8105,
+        network="testnet",
     )
     agent.include(repair_proto)
     return agent
