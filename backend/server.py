@@ -32,6 +32,7 @@ from backend.models import (
     RouteBid,
     RouteType,
 )
+from backend.models.listing_package import PlatformStatus
 from backend.storage.store import store
 from backend.systems.unified_inbox import UnifiedInboxSystem
 from backend.systems.route_closer import RouteCloserSystem
@@ -416,6 +417,96 @@ async def suggest_reply(job_id: str, thread_id: str) -> dict[str, Any]:
     inbox = UnifiedInboxSystem()
     suggestion = await inbox.suggest_reply(thread)
     return {"thread_id": thread_id, "suggested_reply": suggestion}
+
+
+# ── Buyer Chat (phone) ───────────────────────────────────────────────────────
+
+
+class BuyerChatRequest(BaseModel):
+    text: str
+    buyer_name: str = "Buyer"
+
+
+@app.get("/api/buyer-chat/items")
+async def buyer_chat_items() -> list[dict[str, Any]]:
+    """Return all items across all jobs so the phone can pick one to chat about."""
+    all_items = []
+    for job in store.list_jobs():
+        for item_id in job.item_ids:
+            item = store.get_item(item_id)
+            listing = store.get_listing(item_id)
+            if item:
+                entry = {
+                    "item_id": item.item_id,
+                    "job_id": job.job_id,
+                    "name": item.name_guess,
+                    "condition": item.condition_label,
+                    "hero_image": item.hero_frame_paths[0] if item.hero_frame_paths else None,
+                    "price": listing.price_strategy if listing else None,
+                    "title": listing.title if listing else item.name_guess,
+                    "description": listing.description if listing else "",
+                }
+                all_items.append(entry)
+    return all_items
+
+
+@app.get("/api/buyer-chat/{item_id}/thread")
+async def buyer_chat_get_thread(item_id: str) -> dict[str, Any]:
+    """Get or create the buyer chat thread for an item."""
+    thread_id = f"phone-buyer-{item_id}"
+    thread = store.get_thread(thread_id)
+    if not thread:
+        from backend.models.conversation import ConversationThread
+        thread = ConversationThread(
+            thread_id=thread_id,
+            item_id=item_id,
+            platform="facebook",
+            buyer_handle="Phone Buyer",
+        )
+        item = store.get_item(item_id)
+        if item:
+            thread.job_id = item.job_id
+        await store.add_thread(thread)
+    return thread.model_dump(mode="json")
+
+
+@app.post("/api/buyer-chat/{item_id}/send")
+async def buyer_chat_send(item_id: str, body: BuyerChatRequest) -> dict[str, Any]:
+    """Buyer sends a message; AI seller auto-replies."""
+    thread_id = f"phone-buyer-{item_id}"
+    inbox = UnifiedInboxSystem()
+
+    # Check for price offers in the message
+    import re
+    offer_match = re.search(r'\$(\d+(?:\.\d{2})?)', body.text)
+    is_offer = offer_match is not None
+    offer_amount = float(offer_match.group(1)) if offer_match else None
+
+    await inbox.add_message(
+        thread_id, sender="buyer", text=body.text,
+        is_offer=is_offer, offer_amount=offer_amount,
+    )
+
+    thread = store.get_thread(thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Ensure thread has item_id set
+    if not thread.item_id:
+        thread.item_id = item_id
+        item = store.get_item(item_id)
+        if item:
+            thread.job_id = item.job_id
+        thread.platform = "facebook"
+        thread.buyer_handle = body.buyer_name
+        await store.add_thread(thread)
+
+    seller_reply = await inbox.suggest_reply(thread)
+
+    await inbox.add_message(thread_id, sender="seller", text=seller_reply)
+
+    thread = store.get_thread(thread_id)
+    return thread.model_dump(mode="json")
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -915,27 +1006,26 @@ async def run_pipeline(job_id: str) -> None:
             try:
                 optimizer = ListingAssetOptimizationSystem()
                 optimized_images = await optimizer.optimize(item)
-                if optimized_images:
-                    comp_prices = []
-                    for bid in bids_for:
-                        for comp in bid.comparable_listings:
-                            if comp.price > 0:
-                                comp_prices.append(comp.price)
-                    listing_data = await gemini.generate_listing(item, comp_prices=comp_prices or None)
-                    listing = ListingPackage(
-                        item_id=item.item_id, job_id=job_id,
-                        title=listing_data.get("title", item.name_guess),
-                        description=listing_data.get("description", ""),
-                        specs=item.likely_specs,
-                        condition_summary=listing_data.get("condition_summary", item.condition_label),
-                        defects_disclosure=listing_data.get("defects_disclosure", ""),
-                        price_strategy=_clamp_value(listing_data.get("price_strategy", 0.0), item.name_guess, "marketplace"),
-                        price_min=_clamp_value(listing_data.get("price_min", 0.0), item.name_guess, "marketplace"),
-                        price_max=_clamp_value(listing_data.get("price_max", 0.0), item.name_guess, "marketplace"),
-                        images=optimized_images,
-                    )
-                    await store.set_listing(listing)
-                    print(f"[STAGE3] [Item {i+1}] ✓ Listing: {listing.title}")
+                comp_prices = []
+                for bid in bids_for:
+                    for comp in bid.comparable_listings:
+                        if comp.price > 0:
+                            comp_prices.append(comp.price)
+                listing_data = await gemini.generate_listing(item, comp_prices=comp_prices or None)
+                listing = ListingPackage(
+                    item_id=item.item_id, job_id=job_id,
+                    title=listing_data.get("title", item.name_guess),
+                    description=listing_data.get("description", ""),
+                    specs=item.likely_specs,
+                    condition_summary=listing_data.get("condition_summary", item.condition_label),
+                    defects_disclosure=listing_data.get("defects_disclosure", ""),
+                    price_strategy=_clamp_value(listing_data.get("price_strategy", 0.0), item.name_guess, "marketplace"),
+                    price_min=_clamp_value(listing_data.get("price_min", 0.0), item.name_guess, "marketplace"),
+                    price_max=_clamp_value(listing_data.get("price_max", 0.0), item.name_guess, "marketplace"),
+                    images=optimized_images,
+                )
+                await store.set_listing(listing)
+                print(f"[STAGE3] [Item {i+1}] ✓ Listing: {listing.title} ({len(optimized_images)} images)")
             except Exception as exc:
                 print(f"[STAGE3] [Item {i+1}] ⚠ Asset optimization skipped: {exc}")
 
@@ -1112,20 +1202,33 @@ def _decide_best_route(
 
 
 async def run_execution(job_id: str, item_id: str, platforms: list[str]) -> None:
+    print(f"[EXECUTE] Starting execution for item={item_id} platforms={platforms}")
     try:
         await store.update_job_status(job_id, JobStatus.EXECUTING)
 
         listing = store.get_listing(item_id)
         if not listing:
+            print(f"[EXECUTE] ✗ No listing package for item {item_id} — was the pipeline completed?")
             logger.error("No listing package for item %s", item_id)
+            await store.update_job_status(job_id, JobStatus.COMPLETED)
             return
+
+        print(f"[EXECUTE] Found listing: '{listing.title}' price=${listing.price_strategy} images={len(listing.images)}")
 
         from backend.systems.execution import ExecutionSystem
 
         executor = ExecutionSystem()
-        await executor.execute(listing, platforms)
+        result = await executor.execute(listing, platforms)
+
+        live = [pl for pl in result.platform_listings if pl.status == PlatformStatus.LIVE]
+        failed = [pl for pl in result.platform_listings if pl.status == PlatformStatus.FAILED]
+        print(f"[EXECUTE] ✓ Done — {len(live)} live, {len(failed)} failed")
+        for pl in result.platform_listings:
+            print(f"[EXECUTE]   {pl.platform}: {pl.status.value} url={pl.url or '—'} error={pl.error or '—'}")
+
         await store.update_job_status(job_id, JobStatus.COMPLETED)
     except Exception as exc:
+        print(f"[EXECUTE] ✗✗✗ Execution FAILED for item {item_id}: {exc}")
         logger.exception("Execution failed for item %s: %s", item_id, exc)
         try:
             await store.update_job_status(job_id, JobStatus.FAILED, error=str(exc))

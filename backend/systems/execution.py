@@ -34,7 +34,22 @@ class ExecutionSystem:
         package: ListingPackage,
         platforms: list[str],
     ) -> ListingPackage:
+        # Clear previous failed attempts so they don't accumulate
+        package.platform_listings = [
+            pl for pl in package.platform_listings
+            if pl.status in (PlatformStatus.LIVE, PlatformStatus.ARCHIVED)
+        ]
+
         async def _execute_single(platform: str) -> PlatformListing:
+            existing = next(
+                (pl for pl in package.platform_listings
+                 if pl.platform == platform and pl.status == PlatformStatus.LIVE),
+                None,
+            )
+            if existing:
+                logger.info("Skipping %s — already live", platform)
+                return existing
+
             if platform == "ebay":
                 return await self._execute_ebay(package)
             elif platform == "mercari":
@@ -51,13 +66,11 @@ class ExecutionSystem:
                 draft = await adapter.create_draft(package)
                 return await adapter.publish(draft)
 
-        # Run all platforms concurrently, catch per-platform exceptions
         results = await asyncio.gather(
             *[_execute_single(p) for p in platforms],
             return_exceptions=True,
         )
 
-        # Append results sequentially to avoid race conditions on the list
         for platform, result in zip(platforms, results):
             if isinstance(result, Exception):
                 logger.error("Execution failed for platform=%s: %s", platform, result, exc_info=result)
@@ -67,7 +80,8 @@ class ExecutionSystem:
                     error=f"Execution error on {platform}",
                 ))
             else:
-                package.platform_listings.append(result)
+                if not any(pl is result for pl in package.platform_listings):
+                    package.platform_listings.append(result)
 
         await store.set_listing(package)
         return package

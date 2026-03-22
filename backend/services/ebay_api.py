@@ -87,22 +87,29 @@ class EbayService:
             headers = self._auth_headers()
             sku = f"RR-{package.item_id}-{uuid.uuid4().hex[:6]}"
 
+            image_urls = [img.path for img in package.images[:12] if img.path.startswith("http")]
+            if not image_urls:
+                image_urls = ["https://via.placeholder.com/500x500.jpg?text=No+Photo"]
+
             inventory_body = {
                 "availability": {
                     "shipToLocationAvailability": {"quantity": 1}
                 },
                 "condition": self._map_condition(package.condition_summary),
                 "product": {
-                    "title": package.title,
-                    "description": package.description,
-                    "imageUrls": [img.path for img in package.images[:12]],
+                    "title": package.title[:80],
+                    "description": package.description[:4000] or package.title,
+                    "imageUrls": image_urls,
                 },
             }
+            logger.info("eBay inventory PUT for sku=%s: %s", sku, inventory_body)
             resp = await client.put(
                 f"{settings.ebay_sell_url}/inventory_item/{sku}",
                 json=inventory_body,
                 headers=headers,
             )
+            if resp.status_code >= 400:
+                logger.error("eBay inventory_item error %s: %s", resp.status_code, resp.text)
             resp.raise_for_status()
 
             offer_body = {
@@ -110,9 +117,9 @@ class EbayService:
                 "marketplaceId": "EBAY_US",
                 "format": "FIXED_PRICE",
                 "pricingSummary": {
-                    "price": {"value": str(package.price_strategy), "currency": "USD"}
+                    "price": {"value": str(round(package.price_strategy, 2)), "currency": "USD"}
                 },
-                "listingDescription": package.description,
+                "listingDescription": package.description[:4000] or package.title,
                 "categoryId": package.category_id or "9355",
             }
             resp = await client.post(
@@ -120,6 +127,8 @@ class EbayService:
                 json=offer_body,
                 headers=headers,
             )
+            if resp.status_code >= 400:
+                logger.error("eBay offer error %s: %s", resp.status_code, resp.text)
             resp.raise_for_status()
             offer_data = resp.json()
             offer_id = offer_data.get("offerId", "")
@@ -159,11 +168,15 @@ class EbayService:
     @staticmethod
     def _map_condition(condition_label: str) -> str:
         mapping = {
+            "New": "NEW",
             "Like New": "LIKE_NEW",
-            "Good": "GOOD",
-            "Fair": "ACCEPTABLE",
+            "Excellent": "USED_EXCELLENT",
+            "Very Good": "USED_VERY_GOOD",
+            "Good": "USED_GOOD",
+            "Fair": "USED_ACCEPTABLE",
+            "Poor": "FOR_PARTS_OR_NOT_WORKING",
         }
-        return mapping.get(condition_label, "GOOD")
+        return mapping.get(condition_label, "USED_GOOD")
 
     @staticmethod
     def _mock_comps(query: str) -> list[ComparableListing]:

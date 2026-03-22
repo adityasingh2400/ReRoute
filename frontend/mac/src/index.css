@@ -4610,3 +4610,268 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   EXECUTE ROUTE BRANCHING ANIMATION
+   ══════════════════════════════════════════════════════════════════ */
+.exec-anim-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: radial-gradient(ellipse at center, rgba(10,10,20,0.96) 0%, rgba(0,0,0,0.99) 100%);
+}
+.exec-anim-svg { pointer-events: none; }
+.exec-anim-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  text-align: center; padding-bottom: 12%;
+  font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.75);
+  letter-spacing: 0.5px; z-index: 2;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LISTING SIMULATION MODAL
+   ══════════════════════════════════════════════════════════════════ */
+.sim-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.sim-modal {
+  width: 100%; max-width: 820px; max-height: 90vh;
+  background: #fff; border-radius: 14px;
+  display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  color: #222;
+}
+.sim-modal-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 12px; border-bottom: 1px solid #e5e5e5;
+  background: #fafafa;
+}
+.sim-nav-btn {
+  background: none; border: none; cursor: pointer;
+  color: #555; padding: 4px; border-radius: 6px;
+}
+.sim-nav-btn:hover { background: #eee; }
+.sim-close-btn {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: #888; padding: 4px; border-radius: 6px;
+}
+.sim-close-btn:hover { background: #eee; color: #333; }
+.sim-platform-tabs { display: flex; gap: 2px; flex: 1; justify-content: center; }
+.sim-platform-tab {
+  padding: 6px 14px; border: none; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer; font-size: 12px; font-weight: 600;
+  color: #888; transition: all 0.2s;
+}
+.sim-platform-tab.active { color: var(--platform-color); border-bottom-color: var(--platform-color); }
+.sim-platform-tab:hover:not(.active) { color: #555; }
+
+/* Tab bar */
+.sim-tab-bar {
+  display: flex; gap: 0; border-bottom: 1px solid #e5e5e5; background: #fafafa;
+}
+.sim-tab {
+  flex: 1; padding: 8px 0; border: none; background: none;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  color: #888; display: flex; align-items: center; justify-content: center; gap: 6px;
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+}
+.sim-tab.active { color: var(--platform-color, #333); border-bottom-color: var(--platform-color, #333); }
+
+.sim-modal-body { flex: 1; overflow-y: auto; min-height: 400px; }
+.sim-modal-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-top: 1px solid #e5e5e5; background: #fafafa;
+  font-size: 12px; color: #888;
+}
+.sim-status-row { display: flex; align-items: center; gap: 8px; }
+.sim-status-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse-dot 2s ease infinite; }
+
+/* ── eBay ─────────────────────────────────────────────────────── */
+.sim-ebay { font-family: 'Market Sans', Arial, sans-serif; }
+.sim-ebay-topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: #fff; border-bottom: 1px solid #e5e5e5;
+}
+.sim-ebay-logo { font-size: 22px; font-weight: 700; color: #e53238; font-style: italic; }
+.sim-ebay-search {
+  flex: 1;
+}
+.sim-ebay-search input {
+  width: 100%; padding: 7px 14px; border: 2px solid #0064d2;
+  border-radius: 20px; font-size: 13px; outline: none; background: #fff; color: #333;
+}
+.sim-ebay-actions { display: flex; gap: 12px; color: #555; }
+.sim-ebay-breadcrumb { padding: 6px 16px; font-size: 11px; color: #888; }
+.sim-ebay-body { display: flex; gap: 24px; padding: 12px 16px; }
+.sim-ebay-gallery { flex: 0 0 280px; }
+.sim-ebay-hero {
+  width: 280px; height: 280px; background: #f7f7f7; border: 1px solid #e5e5e5;
+  border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.sim-ebay-hero img { width: 100%; height: 100%; object-fit: cover; }
+.sim-ebay-placeholder { font-size: 64px; opacity: 0.3; }
+.sim-ebay-thumbs { display: flex; gap: 6px; margin-top: 8px; }
+.sim-ebay-thumb {
+  width: 56px; height: 56px; border: 2px solid #e5e5e5; border-radius: 6px;
+  overflow: hidden; background: #f7f7f7; cursor: pointer;
+}
+.sim-ebay-thumb.active { border-color: #0064d2; }
+.sim-ebay-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sim-ebay-thumb-ph { width: 100%; height: 100%; background: #eee; }
+.sim-ebay-details { flex: 1; min-width: 0; }
+.sim-ebay-title { font-size: 18px; font-weight: 600; color: #191919; margin: 0 0 8px; line-height: 1.3; }
+.sim-ebay-condition { font-size: 13px; color: #555; margin-bottom: 8px; }
+.sim-ebay-price { font-size: 26px; font-weight: 700; color: #191919; margin-bottom: 6px; }
+.sim-ebay-shipping { font-size: 12px; color: #555; display: flex; align-items: center; gap: 4px; margin-bottom: 14px; }
+.sim-ebay-buy-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.sim-ebay-buy-btn {
+  flex: 1; padding: 10px; border: none; border-radius: 20px;
+  background: #3665f3; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.sim-ebay-cart-btn {
+  flex: 1; padding: 10px; border: 1px solid #3665f3; border-radius: 20px;
+  background: #fff; color: #3665f3; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.sim-ebay-offer-btn {
+  width: 100%; padding: 10px; border: 1px solid #555; border-radius: 20px;
+  background: #fff; color: #191919; font-weight: 600; font-size: 13px; cursor: pointer;
+  margin-bottom: 12px;
+}
+.sim-ebay-seller { font-size: 12px; color: #555; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.sim-ebay-specs { margin-top: 12px; }
+.sim-ebay-specs h4 { font-size: 14px; margin: 0 0 8px; color: #191919; }
+.sim-ebay-spec-row { display: flex; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+.sim-ebay-spec-key { width: 120px; color: #555; }
+.sim-ebay-spec-val { color: #191919; font-weight: 500; }
+.sim-ebay-desc { padding: 12px 16px; border-top: 1px solid #e5e5e5; }
+.sim-ebay-desc h4 { font-size: 14px; margin: 0 0 6px; }
+.sim-ebay-desc p { font-size: 13px; color: #555; line-height: 1.5; margin: 0; }
+
+/* ── Facebook Marketplace ─────────────────────────────────────── */
+.sim-fb { font-family: Helvetica, Arial, sans-serif; }
+.sim-fb-topbar {
+  padding: 10px 16px; background: #fff; border-bottom: 1px solid #ddd;
+}
+.sim-fb-logo { font-size: 18px; font-weight: 700; color: #1877f2; }
+.sim-fb-body { display: flex; gap: 0; }
+.sim-fb-gallery {
+  flex: 0 0 380px; height: 380px; background: #000;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.sim-fb-gallery img { width: 100%; height: 100%; object-fit: contain; }
+.sim-fb-placeholder { font-size: 64px; opacity: 0.3; }
+.sim-fb-info { flex: 1; padding: 16px; overflow-y: auto; }
+.sim-fb-price { font-size: 24px; font-weight: 700; color: #1c1e21; }
+.sim-fb-title { font-size: 17px; font-weight: 600; color: #1c1e21; margin: 4px 0 8px; }
+.sim-fb-meta { font-size: 12px; color: #65676b; display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.sim-fb-condition { font-size: 13px; color: #65676b; display: flex; align-items: center; gap: 4px; margin-bottom: 14px; }
+.sim-fb-action-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.sim-fb-msg-btn {
+  flex: 1; padding: 8px 16px; border: none; border-radius: 6px;
+  background: #1877f2; color: #fff; font-weight: 600; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.sim-fb-save-btn, .sim-fb-share-btn {
+  padding: 8px 12px; border: none; border-radius: 6px;
+  background: #e4e6eb; color: #050505; cursor: pointer;
+}
+.sim-fb-desc { margin-bottom: 14px; }
+.sim-fb-desc h4 { font-size: 14px; margin: 0 0 4px; color: #1c1e21; }
+.sim-fb-desc p { font-size: 13px; color: #65676b; line-height: 1.5; margin: 0; }
+.sim-fb-seller { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid #e4e6eb; }
+.sim-fb-seller-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: #1877f2;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+}
+.sim-fb-seller-meta { font-size: 11px; color: #65676b; }
+
+/* ── Mercari ──────────────────────────────────────────────────── */
+.sim-mercari { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.sim-mercari-topbar {
+  padding: 10px 16px; background: #fff; border-bottom: 1px solid #e5e5e5;
+}
+.sim-mercari-logo { font-size: 20px; font-weight: 700; color: #4dc9f6; }
+.sim-mercari-body { padding: 16px; }
+.sim-mercari-gallery {
+  width: 100%; max-width: 340px; aspect-ratio: 1; margin: 0 auto 16px;
+  background: #f7f7f7; border-radius: 10px; overflow: hidden; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.sim-mercari-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.sim-mercari-placeholder { font-size: 64px; opacity: 0.3; }
+.sim-mercari-likes {
+  position: absolute; bottom: 8px; right: 8px;
+  background: rgba(0,0,0,0.6); color: #fff; padding: 4px 10px;
+  border-radius: 14px; font-size: 11px; display: flex; align-items: center; gap: 4px;
+}
+.sim-mercari-info { max-width: 500px; margin: 0 auto; }
+.sim-mercari-title { font-size: 16px; font-weight: 600; color: #333; margin: 0 0 4px; }
+.sim-mercari-price { font-size: 22px; font-weight: 700; color: #333; margin-bottom: 4px; }
+.sim-mercari-shipping { font-size: 12px; color: #888; display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.sim-mercari-condition { font-size: 13px; color: #555; margin-bottom: 14px; }
+.sim-mercari-action-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.sim-mercari-buy-btn {
+  flex: 1; padding: 10px; border: none; border-radius: 6px;
+  background: #ff5252; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.sim-mercari-offer-btn {
+  flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
+  background: #fff; color: #333; font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.sim-mercari-desc { margin-bottom: 14px; }
+.sim-mercari-desc h4 { font-size: 14px; margin: 0 0 4px; color: #333; }
+.sim-mercari-desc p { font-size: 13px; color: #666; line-height: 1.5; margin: 0; }
+.sim-mercari-seller { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid #eee; }
+.sim-mercari-seller-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: #4dc9f6;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+}
+.sim-mercari-rating { font-size: 11px; color: #f59e0b; display: flex; align-items: center; gap: 2px; }
+
+/* ── Chat simulation ──────────────────────────────────────────── */
+.sim-chat { display: flex; flex-direction: column; min-height: 400px; }
+.sim-chat-header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  background: #fafafa; border-bottom: 1px solid #e5e5e5;
+  font-size: 13px; font-weight: 600; color: #333;
+}
+.sim-chat-badge {
+  background: var(--platform-color, #e53238); color: #fff;
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 10px; min-width: 18px; text-align: center;
+}
+.sim-chat-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #10b981; margin-left: auto;
+  animation: pulse-dot 2s ease infinite;
+}
+.sim-chat-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.sim-chat-msg { max-width: 75%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
+.sim-chat-buyer {
+  align-self: flex-start; background: #f0f0f0; color: #333;
+  border-bottom-left-radius: 4px;
+}
+.sim-chat-seller {
+  align-self: flex-end; background: var(--platform-color, #0064d2); color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.sim-chat-system {
+  align-self: center; background: #e8f5e9; color: #2e7d32;
+  font-size: 12px; font-style: italic; border-radius: 8px;
+}
+.sim-chat-name { display: block; font-size: 10px; font-weight: 700; margin-bottom: 2px; opacity: 0.7; }
+.sim-chat-input {
+  display: flex; gap: 8px; padding: 10px 16px;
+  border-top: 1px solid #e5e5e5; background: #fafafa;
+}
+.sim-chat-input input {
+  flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px;
+  font-size: 13px; outline: none; background: #fff; color: #333;
+}
+.sim-chat-input button {
+  padding: 8px 12px; border: none; border-radius: 20px;
+  background: var(--platform-color, #0064d2); color: #fff; cursor: pointer;
+}

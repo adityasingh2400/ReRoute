@@ -2,6 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, Activity } from 'lucide-react';
 import Layout from './components/Layout';
+import ListingSimulationModal from './components/modules/ListingSimulationModal';
+import ExecuteRouteAnimation from './components/modules/ExecuteRouteAnimation';
 import { useJob } from './hooks/useJob';
 
 export default function App() {
@@ -34,10 +36,24 @@ export default function App() {
     return { active, done, total };
   }, [agents]);
 
+  const [simModal, setSimModal] = useState(null);
+  const [execAnim, setExecAnim] = useState(null);
+
   const handleUpload = useCallback(async (file) => {
     const id = await uploadAndStart(file);
     if (id) setJobId(id);
   }, [uploadAndStart]);
+
+  const handleExecuteItem = useCallback((itemId) => {
+    const item = items.find(i => i.item_id === itemId);
+    const listing = listings[itemId];
+    if (item) setExecAnim({ item, listing });
+  }, [items, listings]);
+
+  const handleAnimComplete = useCallback(() => {
+    setSimModal(execAnim);
+    setExecAnim(null);
+  }, [execAnim]);
 
   return (
     <div className="app">
@@ -81,9 +97,25 @@ export default function App() {
           events={events}
           lastEvent={lastEvent}
           onUpload={handleUpload}
-          onExecuteItem={executeItem}
+          onExecuteItem={handleExecuteItem}
           onSendReply={sendReply}
         />
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {execAnim && (
+          <ExecuteRouteAnimation onComplete={handleAnimComplete} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {simModal && (
+          <ListingSimulationModal
+            item={simModal.item}
+            listing={simModal.listing}
+            onClose={() => setSimModal(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
