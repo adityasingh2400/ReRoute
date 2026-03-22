@@ -650,7 +650,7 @@ async def run_pipeline(job_id: str) -> None:
         print(f"[PIPELINE] ✓ All {len(items)} items graded")
 
         # Pause so viewers can scroll and appreciate the item cards before advancing
-        await asyncio.sleep(3.0)
+        await asyncio.sleep(5.0)
 
         if not items:
             print(f"[PIPELINE] No items detected, completing job")
