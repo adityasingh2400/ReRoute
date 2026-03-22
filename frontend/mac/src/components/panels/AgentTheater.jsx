@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Cpu, Search, RefreshCw, Package, Wrench,
   Trophy, MessageSquare,
@@ -63,8 +63,27 @@ export default function AgentTheater({
   lastEvent,
   onExecuteItem,
   onSendReply,
+  onStageClick,
 }) {
   const currentGroupIdx = useMemo(() => getCurrentStageGroup(agents), [agents]);
+  const [userSelectedGroup, setUserSelectedGroup] = useState(null);
+
+  const handleStageClick = (stageIndex) => {
+    const group = STAGE_GROUPS[stageIndex];
+    if (!group) return;
+    const status = getGroupStatus(group, agents);
+    if (status === 'done' || status === 'partial' || status === 'thinking') {
+      setUserSelectedGroup(stageIndex);
+      onStageClick?.(stageIndex);
+    }
+  };
+
+  const mcStageIdx = useMemo(() => {
+    const groupIdx = userSelectedGroup != null ? userSelectedGroup : currentGroupIdx;
+    const group = STAGE_GROUPS[groupIdx];
+    if (!group) return 0;
+    return group.stage - 1;
+  }, [userSelectedGroup, currentGroupIdx]);
 
   return (
     <div className="theater-v2">
@@ -72,14 +91,15 @@ export default function AgentTheater({
       <div className="agent-bar-v2">
         {STAGE_GROUPS.map((group, i) => {
           const status = getGroupStatus(group, agents);
-          const isCurrent = i === currentGroupIdx;
-          const isPast = i < currentGroupIdx;
-          const isFuture = i > currentGroupIdx;
+          const activeGroupIdx = userSelectedGroup != null ? userSelectedGroup : currentGroupIdx;
+          const isCurrent = i === activeGroupIdx;
+          const isPast = i < activeGroupIdx;
+          const isFuture = i > activeGroupIdx;
+          const isClickable = status === 'done' || status === 'partial' || status === 'thinking';
           const Icon = group.icon;
 
           return (
             <div key={group.id} className="agent-bar-v2-segment" style={{ display: 'contents' }}>
-              {/* Connector before node (not before first) */}
               {i > 0 && (
                 <div className={`ab2-connector ${isPast ? 'ab2-conn-done' : ''}`}>
                   <div className="ab2-conn-line" />
@@ -92,9 +112,11 @@ export default function AgentTheater({
                 </div>
               )}
 
-              {/* If concurrent, render a parallel track cluster */}
               {group.concurrent && group.subLabels ? (
-                <div className={`ab2-parallel-cluster ${isCurrent ? 'ab2-cluster-current' : ''} ${isPast ? 'ab2-cluster-past' : ''} ${isFuture ? 'ab2-cluster-future' : ''}`}>
+                <div
+                  className={`ab2-parallel-cluster ${isCurrent ? 'ab2-cluster-current' : ''} ${isPast ? 'ab2-cluster-past' : ''} ${isFuture ? 'ab2-cluster-future' : ''} ${isClickable ? 'ab2-clickable' : ''}`}
+                  onClick={() => handleStageClick(i)}
+                >
                   <div className="ab2-cluster-label">{group.label}</div>
                   <div className="ab2-parallel-tracks">
                     {group.subLabels.map((sub) => {
@@ -123,7 +145,9 @@ export default function AgentTheater({
                     isFuture && 'ab2-future',
                     status === 'thinking' && 'ab2-thinking',
                     status === 'done' && 'ab2-done',
+                    isClickable && 'ab2-clickable',
                   ].filter(Boolean).join(' ')}
+                  onClick={() => handleStageClick(i)}
                 >
                   <div className="ab2-icon-ring">
                     <Icon size={isCurrent ? 18 : 14} />
@@ -149,6 +173,7 @@ export default function AgentTheater({
           job={job}
           listings={listings}
           onExecuteItem={onExecuteItem}
+          overrideStageIdx={mcStageIdx}
         />
       </div>
     </div>

@@ -1,7 +1,14 @@
 """Temporary script: runs ConciergeAgent standalone so the Agentverse inspector can find it."""
-import os
-from dotenv import load_dotenv
-load_dotenv()
+import os, sys
+from pathlib import Path
+
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, _, val = line.partition("=")
+            os.environ.setdefault(key.strip(), val.strip().strip('"'))
 
 from uagents import Agent
 from uagents_core.contrib.protocols.chat import chat_protocol_spec

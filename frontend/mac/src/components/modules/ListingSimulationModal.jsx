@@ -41,7 +41,9 @@ function EbayListing({ item, listing }) {
   const title = listing?.title || item?.name_guess || 'Item';
   const desc = listing?.description || '';
   const condition = listing?.condition_summary || item?.condition_label || 'Used';
-  const heroImg = item?.hero_frame_paths?.[0];
+  const allImages = item?.hero_frame_paths || [];
+  const [activeImgIdx, setActiveImgIdx] = useState(0);
+  const heroImg = allImages[activeImgIdx] || allImages[0];
   const specs = listing?.specs || item?.likely_specs || {};
 
   return (
@@ -68,12 +70,14 @@ function EbayListing({ item, listing }) {
             }
           </div>
           <div className="sim-ebay-thumbs">
-            {[0, 1, 2].map(i => (
+            {allImages.length > 0 ? allImages.map((img, i) => (
+              <div key={i} className={`sim-ebay-thumb ${i === activeImgIdx ? 'active' : ''}`}
+                onClick={() => setActiveImgIdx(i)}>
+                <img src={img} alt="" />
+              </div>
+            )) : [0, 1, 2].map(i => (
               <div key={i} className={`sim-ebay-thumb ${i === 0 ? 'active' : ''}`}>
-                {heroImg && i === 0
-                  ? <img src={heroImg} alt="" />
-                  : <div className="sim-ebay-thumb-ph" />
-                }
+                <div className="sim-ebay-thumb-ph" />
               </div>
             ))}
           </div>
@@ -125,7 +129,9 @@ function FacebookListing({ item, listing }) {
   const title = listing?.title || item?.name_guess || 'Item';
   const desc = listing?.description || '';
   const condition = listing?.condition_summary || item?.condition_label || 'Used';
-  const heroImg = item?.hero_frame_paths?.[0];
+  const allImages = item?.hero_frame_paths || [];
+  const [activeImgIdx, setActiveImgIdx] = useState(0);
+  const heroImg = allImages[activeImgIdx] || allImages[0];
 
   return (
     <div className="sim-fb">
@@ -138,6 +144,19 @@ function FacebookListing({ item, listing }) {
             ? <img src={heroImg} alt={title} />
             : <div className="sim-fb-placeholder">📷</div>
           }
+          {allImages.length > 1 && (
+            <div className="sim-fb-gallery-nav">
+              <button className="sim-fb-gallery-btn" disabled={activeImgIdx === 0}
+                onClick={() => setActiveImgIdx(i => Math.max(0, i - 1))}>
+                <ChevronLeft size={16} />
+              </button>
+              <span className="sim-fb-gallery-count">{activeImgIdx + 1} / {allImages.length}</span>
+              <button className="sim-fb-gallery-btn" disabled={activeImgIdx === allImages.length - 1}
+                onClick={() => setActiveImgIdx(i => Math.min(allImages.length - 1, i + 1))}>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
         <div className="sim-fb-info">
           <div className="sim-fb-price">${formatPrice(price)}</div>
@@ -182,7 +201,9 @@ function MercariListing({ item, listing }) {
   const title = listing?.title || item?.name_guess || 'Item';
   const desc = listing?.description || '';
   const condition = listing?.condition_summary || item?.condition_label || 'Used';
-  const heroImg = item?.hero_frame_paths?.[0];
+  const allImages = item?.hero_frame_paths || [];
+  const [activeImgIdx, setActiveImgIdx] = useState(0);
+  const heroImg = allImages[activeImgIdx] || allImages[0];
 
   return (
     <div className="sim-mercari">
@@ -198,6 +219,16 @@ function MercariListing({ item, listing }) {
           <div className="sim-mercari-likes">
             <Heart size={12} /> 3
           </div>
+          {allImages.length > 1 && (
+            <div className="sim-mercari-gallery-dots">
+              {allImages.map((_, i) => (
+                <span key={i}
+                  className={`sim-mercari-dot ${i === activeImgIdx ? 'active' : ''}`}
+                  onClick={() => setActiveImgIdx(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="sim-mercari-info">
           <h2 className="sim-mercari-title">{title}</h2>

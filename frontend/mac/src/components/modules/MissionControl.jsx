@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cpu, Eye, Search, RefreshCw, Package, Wrench,
@@ -504,18 +504,10 @@ function DecisionContent({ decisions, items, onExecuteItem }) {
 export default function MissionControl({
   agents = {}, agentsRaw = {}, agentsByItem = {},
   stage3Plan, items = [], decisions = {}, bids = {},
-  job = null, listings = {}, onExecuteItem,
+  job = null, listings = {}, onExecuteItem, overrideStageIdx,
 }) {
   const autoIdx = getActiveStageIndex(agents);
-  const [manualIdx, setManualIdx] = useState(null);
-  const hasManuallyNavigated = useRef(false);
-  const activeIdx = hasManuallyNavigated.current ? (manualIdx ?? autoIdx) : autoIdx;
-
-  // Once the user clicks a pill, stop auto-advancing for the rest of this job
-  const handleStageClick = (i) => {
-    hasManuallyNavigated.current = true;
-    setManualIdx(i);
-  };
+  const activeIdx = overrideStageIdx != null ? Math.min(overrideStageIdx, STAGES.length - 1) : autoIdx;
 
   const stage = STAGES[activeIdx];
 
