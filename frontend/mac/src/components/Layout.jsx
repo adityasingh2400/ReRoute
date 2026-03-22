@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scan, Check, Loader2 } from 'lucide-react';
+import { Scan, Check, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import IntakePanel from './panels/IntakePanel';
 import AgentTheater from './panels/AgentTheater';
 import DecisionPanel from './panels/DecisionPanel';
@@ -89,9 +89,19 @@ export default function Layout({
   const [videoSettled, setVideoSettled] = useState(false);
   const globalStage = useMemo(() => getGlobalStage(agents), [agents]);
 
-  const showVideo = hasVideo && !['bidding', 'deciding', 'concierge-done', 'concierge'].includes(globalStage);
+  // Allow user to manually navigate back to pipeline from decision view
+  const [viewOverride, setViewOverride] = useState(null);
+  const activeView = viewOverride || globalStage;
+
+  useEffect(() => {
+    if (viewOverride && viewOverride === globalStage) {
+      setViewOverride(null);
+    }
+  }, [globalStage, viewOverride]);
+
+  const showVideo = hasVideo && !['bidding', 'deciding', 'concierge-done', 'concierge'].includes(activeView);
   const showCommandCenter = hasVideo && videoSettled;
-  const showConciergeResults = globalStage === 'concierge-done' || globalStage === 'concierge';
+  const showConciergeResults = activeView === 'concierge-done' || activeView === 'concierge';
 
   const handleUploadWithVideo = (file, url) => {
     setVideoUrl(url);
@@ -164,6 +174,13 @@ export default function Layout({
             exit={{ opacity: 0 }}
             transition={{ type: 'spring', stiffness: 160, damping: 24 }}
           >
+            {viewOverride && (globalStage === 'concierge-done' || globalStage === 'concierge') && (
+              <button className="view-override-banner" onClick={() => setViewOverride(null)}>
+                <span>Results are ready</span>
+                <ArrowRight size={14} />
+                <span>View Decisions</span>
+              </button>
+            )}
             <AgentTheater
               job={job}
               items={items}
@@ -193,6 +210,10 @@ export default function Layout({
             exit={{ opacity: 0 }}
             transition={{ type: 'spring', stiffness: 180, damping: 24 }}
           >
+            <button className="back-to-pipeline-btn" onClick={() => setViewOverride('bidding')}>
+              <ArrowLeft size={14} />
+              <span>Back to Pipeline</span>
+            </button>
             <DecisionPanel
               items={items}
               decisions={decisions}

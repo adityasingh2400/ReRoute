@@ -537,61 +537,59 @@ export default function MissionControl({
 
   return (
     <div className="mission-control-v2">
-      {/* Stage content */}
-      <AnimatePresence mode="wait">
-        <motion.div key={stage.id} className="mc-stage-content"
-          initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.25 }}>
+      <div className="mc-stage-scroll-area">
+        <AnimatePresence mode="wait">
+          <motion.div key={stage.id} className="mc-stage-content"
+            initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.25 }}>
 
-          {stage.id === 2 && stage3TaskCount.total > 0 && (
-            <div className="mc-stage3-counter">
-              <span className="mc-s3-badge">
-                {stage3TaskCount.active > 0 ? (
-                  <><Loader2 size={11} className="mc-spinner" /> {stage3TaskCount.active} active</>
-                ) : (
-                  <><CheckCircle2 size={11} /> {stage3TaskCount.done} done</>
+            {stage.id === 2 && stage3TaskCount.total > 0 && (
+              <div className="mc-stage3-counter">
+                <span className="mc-s3-badge">
+                  {stage3TaskCount.active > 0 ? (
+                    <><Loader2 size={11} className="mc-spinner" /> {stage3TaskCount.active} active</>
+                  ) : (
+                    <><CheckCircle2 size={11} /> {stage3TaskCount.done} done</>
+                  )}
+                </span>
+                <span className="mc-s3-total">
+                  {stage3TaskCount.done}/{stage3TaskCount.total} agent-tasks
+                </span>
+              </div>
+            )}
+
+            {stage.id === 2 ? (
+              <div className="planets-field">
+                {items.map((item, i) => (
+                  <ItemPlanet
+                    key={item.item_id}
+                    item={item}
+                    itemIndex={i}
+                    totalItems={items.length}
+                    agentStates={agentsByItem[item.item_id] || {}}
+                    itemBids={bids[item.item_id] || []}
+                    stage3Plan={stage3Plan}
+                  />
+                ))}
+                {items.length === 0 && (
+                  <div className="planets-empty">Waiting for items from Stage 1...</div>
                 )}
-              </span>
-              <span className="mc-s3-total">
-                {stage3TaskCount.done}/{stage3TaskCount.total} agent-tasks
-              </span>
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className={`mc-agents-row mc-agents-${stage.agents.length}`}>
+                {stage.agents.map((agent, i) => (
+                  <AgentCard key={agent.id} agent={agent} state={agents[agent.id]}
+                    perItem={agentsRaw[agent.id] || {}} items={items} index={i}>
+                  </AgentCard>
+                ))}
+              </div>
+            )}
 
-          {/* Stage 2: FLOATING PLANETS layout */}
-          {stage.id === 2 ? (
-            <div className="planets-field">
-              {items.map((item, i) => (
-                <ItemPlanet
-                  key={item.item_id}
-                  item={item}
-                  itemIndex={i}
-                  totalItems={items.length}
-                  agentStates={agentsByItem[item.item_id] || {}}
-                  itemBids={bids[item.item_id] || []}
-                  stage3Plan={stage3Plan}
-                />
-              ))}
-              {items.length === 0 && (
-                <div className="planets-empty">Waiting for items from Stage 1...</div>
-              )}
-            </div>
-          ) : (
-            /* Stages 1, 2, 4: agent-centric cards as before */
-            <div className={`mc-agents-row mc-agents-${stage.agents.length}`}>
-              {stage.agents.map((agent, i) => (
-                <AgentCard key={agent.id} agent={agent} state={agents[agent.id]}
-                  perItem={agentsRaw[agent.id] || {}} items={items} index={i}>
-                </AgentCard>
-              ))}
-            </div>
-          )}
-
-          {/* Stage-specific embedded content */}
-          {stage.id === 1 && <ProcessingContent job={job} agents={agents} items={items} />}
-          {stage.id === 3 && <DecisionContent decisions={decisions} items={items} onExecuteItem={onExecuteItem} />}
-        </motion.div>
-      </AnimatePresence>
+            {stage.id === 1 && <ProcessingContent job={job} agents={agents} items={items} />}
+            {stage.id === 3 && <DecisionContent decisions={decisions} items={items} onExecuteItem={onExecuteItem} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
