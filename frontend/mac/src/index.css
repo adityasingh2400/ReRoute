@@ -3059,32 +3059,37 @@ body {
 /* Analysis items grid */
 .mc-items-grid {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .mc-item-card {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--glass-bg);
-}
-.mc-item-thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
-  object-fit: cover;
+  width: 160px;
   flex-shrink: 0;
 }
+.mc-item-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+}
 .mc-item-info {
-  flex: 1;
   min-width: 0;
 }
 .mc-item-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mc-item-tags {
   display: flex;

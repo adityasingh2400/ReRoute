@@ -115,11 +115,6 @@ export default function ConditionFusion({ items, job }) {
                     </div>
                   )}
                   <div className="cf-item-tags">
-                    {item.confidence != null && (
-                      <Badge variant="primary">
-                        {Math.round(item.confidence * 100)}% match
-                      </Badge>
-                    )}
                     <Badge variant={condition === 'Like New' ? 'success' : 'warning'}>
                       {condition}
                     </Badge>

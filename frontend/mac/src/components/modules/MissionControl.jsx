@@ -413,15 +413,18 @@ function ProcessingContent({ job, agents, items }) {
         <div className="ext-filmstrip">
           <div className="ext-filmstrip-label"><Image size={12} /> {framePaths.length} frames</div>
           <div className="ext-filmstrip-rail">
-            {framePaths.map((fp, i) => (
-              <motion.div key={i} className="ext-frame"
-                initial={{ opacity: 0, scale: 0.7, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: i * 0.04, type: 'spring', stiffness: 300, damping: 22 }}>
-                <img src={fp} alt={`Frame ${i + 1}`} />
-                <span className="ext-frame-num">{i + 1}</span>
-              </motion.div>
-            ))}
+            {framePaths.map((fp, i) => {
+              const jitter = ((i * 7 + 3) % 5) * 0.02;
+              return (
+                <motion.div key={i} className="ext-frame"
+                  initial={{ opacity: 0, scale: 0.7, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 + jitter, type: 'spring', stiffness: 200, damping: 26 }}>
+                  <img src={fp} alt={`Frame ${i + 1}`} />
+                  <span className="ext-frame-num">{i + 1}</span>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -440,10 +443,11 @@ function ProcessingContent({ job, agents, items }) {
             const condition = item.visible_defects?.length || item.spoken_defects?.length
               ? (item.visible_defects?.some?.((d) => d.severity === 'major') ? 'Fair' : 'Good')
               : 'Like New';
+            const jitter = ((i * 13 + 7) % 5) * 0.06;
             return (
               <motion.div key={item.item_id} className="mc-item-card"
-                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.12 }}>
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.22 + jitter, type: 'spring', stiffness: 220, damping: 24 }}>
                 {item.hero_frame_paths?.[0] && (
                   <img src={item.hero_frame_paths[0]} alt={item.name_guess} className="mc-item-thumb" />
                 )}
@@ -451,7 +455,6 @@ function ProcessingContent({ job, agents, items }) {
                   <div className="mc-item-title">{item.name_guess}</div>
                   <div className="mc-item-tags">
                     <Badge variant={condition === 'Like New' ? 'success' : 'warning'}>{condition}</Badge>
-                    <Badge variant="primary">{Math.round((item.confidence || 0) * 100)}%</Badge>
                   </div>
                   {item.visible_defects?.length > 0 && (
                     <div className="mc-item-defects">
