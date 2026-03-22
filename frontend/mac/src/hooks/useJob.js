@@ -9,6 +9,7 @@ export function useJob(jobId) {
   const [decisions, setDecisions] = useState({});
   const [listings, setListings] = useState({});
   const [threads, setThreads] = useState([]);
+  const [agents, setAgents] = useState({});
 
   const { connected, events, lastEvent, subscribe } = useWebSocket(jobId);
   const initialized = useRef(false);
@@ -29,6 +30,7 @@ export function useJob(jobId) {
           const flat = Object.values(state.threads || {}).flat();
           setThreads(flat);
         }
+        if (state.agent_states) setAgents(state.agent_states);
       })
       .catch(() => {});
   }, [jobId]);
@@ -49,6 +51,7 @@ export function useJob(jobId) {
             const flat = Object.values(data.threads || {}).flat();
             setThreads(flat);
           }
+          if (data.agent_states) setAgents(data.agent_states);
           break;
 
         case 'job_created':
@@ -87,6 +90,19 @@ export function useJob(jobId) {
               ? prev.map((t, j) => (j === idx ? { ...t, ...data } : t))
               : [...prev, data];
           });
+          break;
+
+        case 'agent_started':
+          setAgents((prev) => ({ ...prev, [data.agent]: { status: 'thinking', message: data.message, progress: 0, item_id: data.item_id } }));
+          break;
+        case 'agent_progress':
+          setAgents((prev) => ({ ...prev, [data.agent]: { ...prev[data.agent], message: data.message, confidence: data.confidence, progress: data.progress } }));
+          break;
+        case 'agent_completed':
+          setAgents((prev) => ({ ...prev, [data.agent]: { status: 'done', message: data.message, elapsed_ms: data.elapsed_ms, confidence: data.confidence } }));
+          break;
+        case 'agent_error':
+          setAgents((prev) => ({ ...prev, [data.agent]: { status: 'error', message: data.error || data.message, elapsed_ms: data.elapsed_ms } }));
           break;
       }
     });
@@ -128,6 +144,7 @@ export function useJob(jobId) {
     decisions,
     listings,
     threads,
+    agents,
     connected,
     events,
     lastEvent,

@@ -2298,3 +2298,365 @@ body {
   0% { text-shadow: 0 0 10px var(--success); }
   100% { text-shadow: none; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AGENT STATUS BAR — persistent pipeline topology above tabs
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.agent-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.asb-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-tertiary);
+  margin-right: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.asb-pip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+  transition: background var(--transition-fast);
+}
+.asb-pip:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.asb-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-tertiary);
+  background: var(--bg-card);
+  transition: all var(--transition-base);
+}
+.asb-dot.thinking {
+  background: var(--primary);
+  border-color: #818cf8;
+  box-shadow: 0 0 8px var(--primary);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+.asb-dot.done {
+  background: var(--success);
+  border-color: #34d399;
+}
+.asb-dot.error {
+  background: var(--danger);
+  border-color: #f87171;
+}
+.asb-dot.waiting {
+  background: var(--warning);
+  border-color: #fbbf24;
+}
+
+.asb-name {
+  font-size: 8px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.asb-arrow {
+  color: var(--text-tertiary);
+  margin: 0 1px;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+.asb-arrow.active {
+  color: var(--primary);
+  opacity: 1;
+}
+
+.asb-group-start,
+.asb-group-end {
+  display: none;
+}
+
+/* Visual grouping for stage 3 route agents */
+.asb-pip:has(+ .asb-group-end),
+.asb-group-start + .asb-pip,
+.asb-group-start ~ .asb-pip:not(.asb-group-end ~ .asb-pip) {
+  /* Fallback: use a subtle background for the group */
+}
+
+.asb-counter {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MISSION CONTROL — 9-agent grid with live status
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.mission-control {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.mc-stage-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.mc-stage-grid {
+  display: grid;
+  gap: 10px;
+}
+
+/* Stage 1-2: 2 cards centered */
+.mc-stage-1, .mc-stage-2 {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 500px;
+}
+
+/* Stage 3: 5 route agents in hero row */
+.mc-stage-3 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* Stage 4-5: 2 cards centered */
+.mc-stage-4, .mc-stage-5 {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 500px;
+}
+
+.mc-card {
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 110px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.mc-card-thinking {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.08);
+}
+.mc-card-done {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.mc-card-error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.mc-card-idle {
+  opacity: 0.5;
+}
+
+.mc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mc-card-icon {
+  color: var(--text-tertiary);
+}
+.mc-card-thinking .mc-card-icon {
+  color: var(--primary);
+}
+.mc-card-done .mc-card-icon {
+  color: var(--success);
+}
+.mc-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.mc-badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 500;
+}
+.mc-badge-idle { background: rgba(107, 107, 128, 0.15); color: var(--text-tertiary); }
+.mc-badge-thinking { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+.mc-badge-done { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.mc-badge-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.mc-badge-waiting { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+.mc-card-body {
+  flex: 1;
+}
+.mc-card-message {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.mc-card-thinking .mc-card-message {
+  color: var(--text-primary);
+}
+
+.mc-spinner {
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.mc-card-progress-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mc-card-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+}
+.mc-card-progress-fill.done {
+  background: var(--success);
+}
+
+.mc-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mc-card-timer {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.mc-card-confidence {
+  font-size: 10px;
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOPBAR AGENT COUNT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.topbar-agents {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+.agent-active-icon {
+  color: var(--primary);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STAGE TIMER in DecisionPanel
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dp-stage-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.04);
+}
+.dp-stage-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.dp-stage-name {
+  color: var(--text-secondary);
+}
+.dp-stage-time {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+.dp-stage-highlight {
+  color: var(--primary);
+}
+.dp-stage-highlight .dp-stage-name {
+  color: var(--primary);
+  font-weight: 600;
+}
+.dp-stage-highlight .dp-stage-time {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WINNER CELEBRATION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dp-total-winner {
+  animation: winner-glow 1.5s ease-out;
+}
+.dp-total-winner .animated-value {
+  animation: count-glow 2s ease-out;
+}
+
+@keyframes winner-glow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  30% { box-shadow: 0 0 30px 5px rgba(16, 185, 129, 0.25); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Winner card in BestRoute gets golden flash */
+.br-route-card.winner {
+  animation: winner-card-flash 1.5s ease-out;
+}
+
+@keyframes winner-card-flash {
+  0% { border-color: var(--glass-border); }
+  20% { border-color: #fbbf24; box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); }
+  100% { border-color: rgba(99, 102, 241, 0.3); box-shadow: none; }
+}

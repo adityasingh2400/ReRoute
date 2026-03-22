@@ -20,18 +20,32 @@ const ROUTE_LABELS = {
   return: 'Return',
 };
 
-export default function DecisionPanel({ items, decisions, onExecuteItem }) {
+export default function DecisionPanel({ items, decisions, agents = {}, onExecuteItem }) {
   const decisionList = useMemo(() => Object.values(decisions), [decisions]);
 
   const totalValue = useMemo(() => {
     return decisionList.reduce((sum, d) => sum + (d.estimated_best_value || 0), 0);
   }, [decisionList]);
 
+  const stageTimers = useMemo(() => {
+    const stages = { intake: null, condition_fusion: null, route_agents: null, route_decider: null };
+    if (agents.intake?.elapsed_ms) stages.intake = agents.intake.elapsed_ms;
+    if (agents.condition_fusion?.elapsed_ms) stages.condition_fusion = agents.condition_fusion.elapsed_ms;
+    if (agents.route_decider?.elapsed_ms) stages.route_decider = agents.route_decider.elapsed_ms;
+    // Route agents: take the max elapsed across all route agents
+    const routeAgents = ['marketplace_resale', 'trade_in', 'return', 'repair_roi', 'bundle_opportunity'];
+    const routeTimes = routeAgents.map((a) => agents[a]?.elapsed_ms).filter(Boolean);
+    if (routeTimes.length > 0) stages.route_agents = Math.max(...routeTimes);
+    return stages;
+  }, [agents]);
+
+  const hasWinner = decisionList.length > 0;
+
   return (
     <>
       <div className="panel-header">Decisions</div>
       <div className="decision-panel">
-        <div className="dp-total">
+        <div className={`dp-total ${hasWinner ? 'dp-total-winner' : ''}`}>
           <div className="dp-total-label">Total Recovered Value</div>
           <AnimatedValue
             value={totalValue}
@@ -41,6 +55,35 @@ export default function DecisionPanel({ items, decisions, onExecuteItem }) {
             positive
           />
         </div>
+
+        {Object.values(stageTimers).some(Boolean) && (
+          <div className="dp-stage-timer">
+            {stageTimers.intake && (
+              <div className="dp-stage-row">
+                <span className="dp-stage-name">Extraction</span>
+                <span className="dp-stage-time">{(stageTimers.intake / 1000).toFixed(1)}s</span>
+              </div>
+            )}
+            {stageTimers.condition_fusion && (
+              <div className="dp-stage-row">
+                <span className="dp-stage-name">Analysis</span>
+                <span className="dp-stage-time">{(stageTimers.condition_fusion / 1000).toFixed(1)}s</span>
+              </div>
+            )}
+            {stageTimers.route_agents && (
+              <div className="dp-stage-row dp-stage-highlight">
+                <span className="dp-stage-name">Bidding (5 agents)</span>
+                <span className="dp-stage-time">{(stageTimers.route_agents / 1000).toFixed(1)}s</span>
+              </div>
+            )}
+            {stageTimers.route_decider && (
+              <div className="dp-stage-row">
+                <span className="dp-stage-name">Decision</span>
+                <span className="dp-stage-time">{(stageTimers.route_decider / 1000).toFixed(1)}s</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <AnimatePresence>
           <div className="dp-items">

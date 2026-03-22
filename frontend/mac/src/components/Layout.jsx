@@ -11,6 +11,7 @@ export default function Layout({
   decisions,
   listings,
   threads,
+  agents,
   events,
   lastEvent,
   onUpload,
@@ -40,6 +41,7 @@ export default function Layout({
           decisions={decisions}
           listings={listings}
           threads={threads}
+          agents={agents}
           events={events}
           lastEvent={lastEvent}
           onExecuteItem={onExecuteItem}
@@ -51,6 +53,7 @@ export default function Layout({
         <DecisionPanel
           items={items}
           decisions={decisions}
+          agents={agents}
           onExecuteItem={onExecuteItem}
         />
       </div>
