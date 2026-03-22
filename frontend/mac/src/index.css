@@ -413,15 +413,15 @@ body {
   border-radius: 100px;
 }
 
-.badge-ebay { background: #F5E0E0; color: #9A2020; }
-.badge-mercari { background: #E0E8F5; color: #2A5590; }
-.badge-poshmark { background: #F5E0E8; color: #8B2040; }
-.badge-offerup { background: #E0F0E5; color: #2A6B3A; }
-.badge-facebook { background: #E0E8F5; color: #2A5590; }
-.badge-amazon { background: #F5EDD8; color: #7A5A10; }
-.badge-swappa { background: #E0F0ED; color: #2A6B60; }
-.badge-decluttr { background: #E0F0E5; color: #2A6B3A; }
-.badge-backmarket { background: #E0F0E5; color: #2A6B3A; }
+.badge-ebay { background: var(--primary-dim); color: var(--primary); }
+.badge-mercari { background: var(--primary-dim); color: var(--primary); }
+.badge-poshmark { background: var(--primary-dim); color: var(--primary); }
+.badge-offerup { background: var(--primary-dim); color: var(--primary); }
+.badge-facebook { background: var(--primary-dim); color: var(--primary); }
+.badge-amazon { background: var(--primary-dim); color: var(--primary); }
+.badge-swappa { background: var(--primary-dim); color: var(--primary); }
+.badge-decluttr { background: var(--primary-dim); color: var(--primary); }
+.badge-backmarket { background: var(--primary-dim); color: var(--primary); }
 
 /* ===== GLASS CARD ===== */
 .glass-card {
@@ -2831,7 +2831,7 @@ body {
   fill: none;
   stroke: var(--primary-glow);
   stroke-width: 2;
-  stroke-dasharray: 6 4;
+  stroke-dasharray: none;
 }
 
 .dt-card {
@@ -3328,7 +3328,7 @@ body {
 .planet-line {
   stroke: #EAE0D5;
   stroke-width: 0.5;
-  stroke-dasharray: 3 3;
+  stroke-dasharray: none;
   transition: stroke 0.4s ease;
 }
 .planet-line-thinking {
@@ -3769,15 +3769,15 @@ body {
   color: var(--cream);
   background: var(--text-tertiary);
 }
-.plat-ebay { background: #C41E3A; }
-.plat-mercari { background: #6B9FD4; }
-.plat-swappa { background: #7BA05B; }
-.plat-facebook { background: #5B8FD4; }
-.plat-offerup { background: #5FAF70; }
-.plat-poshmark { background: #8B4040; }
-.plat-amazon { background: #9A7020; color: #FFFFFF; }
-.plat-craigslist { background: #8B6F55; }
-.plat-tradein { background: #48484A; }
+.plat-ebay { background: var(--primary); }
+.plat-mercari { background: var(--primary); }
+.plat-swappa { background: var(--primary); }
+.plat-facebook { background: var(--primary); }
+.plat-offerup { background: var(--primary); }
+.plat-poshmark { background: var(--primary); }
+.plat-amazon { background: var(--primary); }
+.plat-craigslist { background: var(--primary); }
+.plat-tradein { background: var(--maroon-deep); }
 .plat-other { background: var(--text-tertiary); }
 
 .ibc-lc-image {

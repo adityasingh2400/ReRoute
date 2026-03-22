@@ -35,9 +35,9 @@ const LANE_CONFIG = {
 };
 
 const PLATFORM_COLORS = {
-  ebay: '#9A2020', mercari: '#2A5590', swappa: '#4A7A2E',
-  amazon: '#9A7020', facebook: '#2A5590', offerup: '#2A6B3A',
-  poshmark: '#8B2040', craigslist: '#6B4A3A', other: '#7A1B2D',
+  ebay: '#7A1B2D', mercari: '#7A1B2D', swappa: '#7A1B2D',
+  amazon: '#7A1B2D', facebook: '#7A1B2D', offerup: '#7A1B2D',
+  poshmark: '#7A1B2D', craigslist: '#7A1B2D', other: '#7A1B2D',
 };
 
 const ROUTE_LABELS = {
