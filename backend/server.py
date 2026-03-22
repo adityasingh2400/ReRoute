@@ -1261,10 +1261,13 @@ async def run_execution(job_id: str, item_id: str, platforms: list[str]) -> None
 
 settings.ensure_dirs()
 
+_listing_imgs_dir = str(Path(__file__).resolve().parent / ".reroutecache" / "listing_images")
+
 for _mount, _directory in [
     ("/frames", settings.frames_dir),
     ("/optimized", settings.optimized_dir),
     ("/uploads", settings.upload_dir),
+    ("/listing-images", _listing_imgs_dir),
 ]:
     Path(_directory).mkdir(parents=True, exist_ok=True)
     app.mount(_mount, StaticFiles(directory=_directory), name=_mount.lstrip("/"))

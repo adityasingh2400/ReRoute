@@ -52,6 +52,9 @@ Thumbs.db
 # Demo cache (pre-computed snapshot data)
 .demo_cache/
 
+# Listing image cache
+backend/.reroutecache/
+
 # Test artifacts
 test.MOV
 *.MOV
