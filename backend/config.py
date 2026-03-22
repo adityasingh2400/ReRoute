@@ -9,8 +9,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
-    # Gemini
+    # Gemini — supports multiple API keys for concurrent round-robin
     gemini_api_key: str = ""
+    gemini_api_key_2: str = ""
+    gemini_api_key_3: str = ""
 
     # ASI:One
     asi_one_api_key: str = ""

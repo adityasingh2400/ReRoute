@@ -80,15 +80,44 @@ async def _upload_video_and_wait(client: genai.Client, video_path: str):
 
 
 class GeminiService:
+    """Gemini AI service with multi-key round-robin for concurrent requests.
+
+    When multiple API keys are configured (GEMINI_API_KEY, GEMINI_API_KEY_2,
+    GEMINI_API_KEY_3), each concurrent call gets a different key to avoid
+    rate limits. Keys are distributed round-robin via an atomic counter.
+    """
+
+    _clients: list[genai.Client] = []
+    _counter: int = 0
+    _initialized: bool = False
+
     def __init__(self) -> None:
-        self._client: genai.Client | None = None
+        if not GeminiService._initialized:
+            GeminiService._init_clients()
+
+    @classmethod
+    def _init_clients(cls) -> None:
+        keys = [k for k in [
+            settings.gemini_api_key,
+            settings.gemini_api_key_2,
+            settings.gemini_api_key_3,
+        ] if k]
+        if not keys:
+            cls._initialized = True
+            return
+        cls._clients = [genai.Client(api_key=k) for k in keys]
+        cls._initialized = True
+        logger.info("Gemini initialized with %d API key(s) for round-robin", len(cls._clients))
 
     def _get_client(self) -> genai.Client:
-        if self._client is None:
+        if not self._clients:
             if not settings.gemini_api_key:
                 raise RuntimeError("GEMINI_API_KEY not configured")
-            self._client = genai.Client(api_key=settings.gemini_api_key)
-        return self._client
+            self._clients = [genai.Client(api_key=settings.gemini_api_key)]
+        # Round-robin across available clients
+        idx = GeminiService._counter % len(self._clients)
+        GeminiService._counter += 1
+        return self._clients[idx]
 
     async def analyze_video(
         self,
