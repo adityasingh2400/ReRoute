@@ -109,12 +109,22 @@ class GeminiService:
         cls._initialized = True
         logger.info("Gemini initialized with %d API key(s) for round-robin", len(cls._clients))
 
-    def _get_client(self) -> genai.Client:
+    def _get_primary_client(self) -> genai.Client:
+        """Primary client (Key 1) — used for video uploads and analysis that
+        reference uploaded files. Files are scoped to the uploading key's project."""
         if not self._clients:
             if not settings.gemini_api_key:
                 raise RuntimeError("GEMINI_API_KEY not configured")
             self._clients = [genai.Client(api_key=settings.gemini_api_key)]
-        # Round-robin across available clients
+        return self._clients[0]
+
+    def _get_client(self) -> genai.Client:
+        """Round-robin client — used for search_live_comps and other calls
+        that don't reference uploaded files."""
+        if not self._clients:
+            if not settings.gemini_api_key:
+                raise RuntimeError("GEMINI_API_KEY not configured")
+            self._clients = [genai.Client(api_key=settings.gemini_api_key)]
         idx = GeminiService._counter % len(self._clients)
         GeminiService._counter += 1
         return self._clients[idx]
@@ -129,7 +139,7 @@ class GeminiService:
             return self._mock_analyze(frame_paths)
 
         try:
-            client = self._get_client()
+            client = self._get_primary_client()  # Must match the key that uploaded the video file
 
             prompt = (
                 "You are an expert product analyst for a resale marketplace.\n\n"
@@ -300,7 +310,7 @@ class GeminiService:
             return "This is a demo item. It's in good condition overall with some minor scratches on the back."
 
         try:
-            client = self._get_client()
+            client = self._get_primary_client()  # Must match the key that uploaded the video file
             video_file = await _upload_video_and_wait(client, video_path)
 
             print(f"[GEMINI] Transcribing speech from video...")
