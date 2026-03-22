@@ -77,7 +77,7 @@ export default function AgentTheater({
     if (!seq) return;
 
     const agentState = agents[seq.trigger];
-    if (agentState?.status === 'done') {
+    if (agentState?.status === 'done' || agentState?.status === 'agent_completed') {
       const now = Date.now();
       const elapsed = now - lastAutoSwitch.current;
       const delay = Math.max(0, AUTO_DWELL_MS - elapsed);

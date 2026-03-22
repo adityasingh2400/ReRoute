@@ -26,8 +26,9 @@ export default function App() {
 
   const agentSummary = useMemo(() => {
     const entries = Object.values(agents);
-    const active = entries.filter((a) => a.status === 'thinking').length;
-    const done = entries.filter((a) => a.status === 'done').length;
+    // Handle both normalized (thinking/done) and raw backend (agent_started/agent_completed) statuses
+    const active = entries.filter((a) => ['thinking', 'agent_started', 'agent_progress'].includes(a.status)).length;
+    const done = entries.filter((a) => ['done', 'agent_completed'].includes(a.status)).length;
     const total = entries.length;
     return { active, done, total };
   }, [agents]);

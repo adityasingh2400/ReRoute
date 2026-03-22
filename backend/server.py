@@ -531,6 +531,22 @@ async def run_pipeline(job_id: str) -> None:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logger.error("Processing failed for item %d: %s", i, result, exc_info=result)
+                # Emit agent_error for all agents that were started for this item
+                # so they don't stay stuck in "thinking" forever
+                item = items[i]
+                failed_agents = ["marketplace_resale", "return"]
+                if item.is_electronics:
+                    failed_agents.append("trade_in")
+                if item.has_defects:
+                    failed_agents.append("repair_roi")
+                if len(items) > 1:
+                    failed_agents.append("bundle_opportunity")
+                failed_agents.append("route_decider")
+                for agent in failed_agents:
+                    await emit_agent_event(job_id, "agent_error", {
+                        "agent": agent, "item_id": item.item_id,
+                        "error": f"Processing failed: {result}",
+                    })
         print(f"[PIPELINE] ✓ All {len(items)} items processed in {_time.time()-t2:.1f}s (concurrent)")
 
         await store.update_job_status(job_id, JobStatus.COMPLETED)

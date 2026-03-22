@@ -145,7 +145,7 @@ class JobStore:
     # get_agent_states() aggregates across items: if ANY item has an agent
     # "thinking", it shows thinking. Only shows "done" when ALL items are done.
 
-    _STATUS_PRIORITY = {"agent_started": 3, "agent_progress": 2, "agent_completed": 1, "agent_error": 1}
+    _STATUS_PRIORITY = {"agent_started": 3, "agent_progress": 2, "agent_error": 2, "agent_completed": 1}
 
     def set_agent_state(self, job_id: str, agent: str, state: dict) -> None:
         item_id = state.get("item_id", "_global")
